@@ -1,4 +1,4 @@
-![image](https://github.com/skinmicrobiome/Joglekar_Staphylococcus_2023/assets/39064307/5dc649cc-3720-4a05-9556-337a56943332)# Joglekar_Staphylococcus_2023
+# Joglekar_Staphylococcus_2023
 Integrated genomic and functional analyses of human skin associated Staphylococcus reveals extensive inter- and intra-species diversity
 
 * phyloseq_object - phyloseq_object used for ASV analysis
