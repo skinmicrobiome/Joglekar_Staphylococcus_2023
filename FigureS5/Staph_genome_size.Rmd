@@ -1,0 +1,162 @@
+---
+title: "Staph Genome Size"
+author: Sean Conlan
+output:
+  html_document:
+    toc: True
+    df_print: paged
+---
+
+## Introduction
+
+We noted that our S. hominis isolates have markedly (~10%) smaller genomes than S. epidermidis or S. capitis isolates. This script uses the downloaded NCBI genome reports to look at the distribution of: genome sizes, CDS counts and %GC for 10 Staphylococcus species found on skin.
+
+### Input
+
+* NCBI genome and annotation report downloads
+
+### Output
+
+* none 
+
+
+## Setup
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, error = FALSE)
+knitr::opts_chunk$set(fig.width=12, fig.height=8)
+library(readxl); packageVersion("readxl")
+library(knitr)
+#library(phyloseq); packageVersion("phyloseq")
+#library(Biostrings); packageVersion("Biostrings")
+library(ggplot2); packageVersion("ggplot2")
+#library(RColorBrewer); packageVersion("RColorBrewer")
+#library(reshape2); #now a bit outdated, but how I learned to reshape data
+#library(viridis);#required for the viridis color scales
+#library(gridExtra) #required for arraying multiple plots with grid.arrange
+library(tidyverse)
+library(ggbreak)
+#library(magrittr)
+
+project_path <- getwd()
+tracking_path <- paste0("~/Desktop/99_reference/Tracking_Sheets/","microbiome_tracking1.xlsx")
+```
+```{r}
+
+addsource<-function(df,src)
+{
+   source<-rep(src,as.numeric(count(df)))
+   return(data.frame(source,df))
+}
+
+```
+
+## Read Genome Reports
+```{r}
+#mt<-read_excel(tracking_path,sheet="Metagenomics")
+Shom<-read.csv(paste0(project_path,"/Shom-NCBI-genrep-2022-05-27.csv"), header = TRUE)
+Saur<-read.csv(paste0(project_path,"/Saur-NCBI-genrep-2022-05-27.csv"), header = TRUE)
+Scap<-read.csv(paste0(project_path,"/Scap-NCBI-genrep-2022-05-27.csv"), header = TRUE)
+Slug<-read.csv(paste0(project_path,"/Slug-NCBI-genrep-2022-05-27.csv"), header = TRUE)
+Swar<-read.csv(paste0(project_path,"/Swar-NCBI-genrep-2022-05-27.csv"), header = TRUE)
+Sepi<-read.csv(paste0(project_path,"/Sepi-NCBI-genrep-2022-05-27.csv"), header = TRUE)
+#Sauric<-read.csv(paste0(project_path,"Sauric-NCBI-genrep-2022-05-28.csv"), header = TRUE)
+Shae<-read.csv(paste0(project_path,"/Shae-NCBI-genrep-2022-05-28.csv"), header = TRUE)
+#Ssac<-read.csv(paste0(project_path,"Ssac-NCBI-genrep-2022-05-28.csv"), header = TRUE)
+Scoh<-read.csv(paste0(project_path,"/Scoh-NCBI-genrep-2022-05-28.csv"), header = TRUE)
+
+
+
+all<-rbind(Shom,Saur,Scap,Slug,Swar,Sepi,Shae,Scoh)
+all<-addsource(all,"NCBI")
+
+ourStaph<-read.csv(paste0(project_path,"/asmstat_126.csv"), header = TRUE)
+ourStaph<-addsource(ourStaph,"this study")
+
+all<-rbind(ourStaph,all)
+
+#Organism Names are appended with other info
+# Grab just the genus and species
+species<-all$X.Organism.Name
+all<-cbind(species,all)
+
+#be lazy and use a loop
+for (row in 1:nrow(all)) {
+    name<-all[row,'X.Organism.Name']
+    tmp<-unlist(strsplit(name," "))
+    all[row,'species']<-paste(as.character(tmp[1]),as.character(tmp[2]))
+}
+
+```
+
+## Count of Genomes
+```{r fig.width=6, fig.height=8}
+p0<-ggplot(all, aes(species,color=source)) +
+    geom_bar(stat="count",fill="white") +
+    scale_y_break(c(1500, 13500)) +
+    xlab("") + ylab("") +
+    geom_text(aes(label = ..count..), stat = "count") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          axis.text = element_text(size = 16)) +
+    facet_grid(~source,scales="free")
+p0
+
+```
+
+## Plot Genome Sizes
+```{r fig.width=6, fig.height=6}
+p1<-ggplot(all, aes(x=reorder(species,Size.Mb.,median),Size.Mb.,color=source)) +
+    geom_boxplot(outlier.shape = NA) +
+    #ggtitle("Genome Size of NCBI Genomes (outliers >4Mb excluded)") +
+    #geom_violin() +
+    #geom_jitter(width=0.1, size=1) +
+    ylim(2,3.1) +
+    ylab("Genome Size (Mb)") + xlab("") +
+#    scale_y_break(c(4, 7)) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          axis.text = element_text(size = 16)) +
+    facet_grid(~source,scales="free")
+p1
+```
+
+## Plot CDS
+```{r fig.width=6, fig.height=6}
+p2<-ggplot(all, aes(x=reorder(species,Size.Mb.,median),CDS,color=source)) +
+    geom_boxplot(outlier.shape = NA) +
+    #ggtitle("CDS count of NCBI Genomes") +
+    #geom_violin() +
+    #geom_jitter(width=0.1, size=1) +
+    ylim(1800,3000) +
+    ylab("CDS count") + xlab("") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          axis.text = element_text(size = 16)) +
+    facet_grid(~source,scales="free")
+p2
+```
+
+```{r eval=FALSE, fig.height=6, fig.width=4, include=FALSE}
+p2<-ggplot(all,aes(species,CDS/Size.Mb.,color=source)) +
+    geom_boxplot(outlier.shape = NA) +
+    #ggtitle("Genes per Mb of NCBI Genomes") +
+    #geom_violin() +
+    #geom_jitter(width=0.1, size=1) +
+    ylim(700,1100) +
+    ylab("CDS/Mb") + xlab("") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          axis.text = element_text(size = 16))
+p2
+```
+
+## Plot %GC
+```{r fig.width=6, fig.height=6}
+p2<-ggplot(all, aes(x=reorder(species,Size.Mb.,median),GC.,color=source)) +
+    geom_boxplot(outlier.shape = NA) +
+    #ggtitle("%GC of NCBI Genomes") +
+    #geom_violin() +
+    #geom_jitter(width=0.1, size=1) +
+    ylim(31,34) +
+    ylab("%GC") + xlab("") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          axis.text = element_text(size = 16)) +
+    facet_grid(~source,scales="free")
+p2
+```
