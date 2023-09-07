@@ -1,0 +1,162 @@
+---
+title: "Figure S2: fastANI heatmap for Staphylococcus isolates"
+author: "Payal Joglekar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+===============================================================================
+
+###Background: The purpose of this document is plot pair-wise fastANI values of dereplicated Staphylococcus isolates as calculated using dRep v3.2.2
+. <br />
+Isolates: <br />
+1. S. capitis - 22 <br />
+2. S. epidermidis - 49 <br />
+3. S. hominis - 55 <br />
+
+###Steps:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+### 1 Load libraries
+
+```{r}
+library(reshape2)
+library(RColorBrewer)
+library(gplots)
+library(tidyverse)
+library(pheatmap)
+```
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+
+###2 Upload files and tidy them
+```{r}
+#load fANI results table
+df.ani1 <- read.csv(file.path(path,"FigureS4_compare_fANI_Ndb.csv"), header=T, na.strings="")
+
+#load metadata table
+annotation <- read.csv(file.path(path,"Joglekar_PNAS_2023_metadata.csv"), header=T, na.strings="")
+annotation <- dplyr::rename(annotation, subject_ID  = subject.number.for.manuscript)
+
+
+#modify names according to metadata
+df.ani1$reference <- gsub("Scap_58D05_admsf.spades.pilon.fasta", "Scap_58D05_CD159_admsf.spades.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Scap_58D05_admsf.spades.pilon.fasta", "Scap_58D05_CD159_admsf.spades.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("iT_Sepi_28B01_adqgz.spades.pilon.fasta", "issueT_Sepi_28B01_adqgz.spades.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("iT_Sepi_28B01_adqgz.spades.pilon.fasta", "issueT_Sepi_28B01_adqgz.spades.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("iT_Shom_28A10_adqgy.spades.pilon.fasta", "issueT_Shom_28A10_adqgy.spades.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("iT_Shom_28A10_adqgy.spades.pilon.fasta", "issueT_Shom_28A10_adqgy.spades.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Scap_2C01_adjxa.spades.pilon.fasta", "Scap_2C01_adjxa.Nano.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Scap_2C01_adjxa.spades.pilon.fasta", "Scap_2C01_adjxa.Nano.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Scap_LM7D7_adjwo.spades.pilon.fasta", "Scap_LM7D7_adjwo.Nano.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Scap_LM7D7_adjwo.spades.pilon.fasta", "Scap_LM7D7_adjwo.Nano.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Scap_DM21G11_adqhb.spades.pilon.fasta", "Scap_DM21G11_adqhb.Nano.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Scap_DM21G11_adqhb.spades.pilon.fasta", "Scap_DM21G11_adqhb.Nano.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Shom_DM18D10_acrlg.spades.pilon.fasta", "Shom_DM18D10_acrlg.PB_DATA.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Shom_DM18D10_acrlg.spades.pilon.fasta", "Shom_DM18D10_acrlg.PB_DATA.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Shom_DM21B05_acrlk.spades.pilon.fasta", "Shom_DM21B05_acrlk.PB_DATA.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Shom_DM21B05_acrlk.spades.pilon.fasta", "Shom_DM21B05_acrlk.PB_DATA.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Shom_DM21D06_acrlw.spades.pilon.fasta", "Shom_DM21D06_acrlw.Nano.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Shom_DM21D06_acrlw.spades.pilon.fasta", "Shom_DM21D06_acrlw.Nano.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Sepi_DM21B07_adqbg.spades.pilon.fasta", "Sepi_DM21B07_adqbg.Nano.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Sepi_DM21B07_adqbg.spades.pilon.fasta", "Sepi_DM21B07_adqbg.Nano.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Sepi_DM24B03_adqbk.spades.pilon.fasta", "Sepi_DM24B03_adqbk.Nano.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Sepi_DM24B03_adqbk.spades.pilon.fasta", "Sepi_DM24B03_adqbk.Nano.pilon.fasta", df.ani1$querry)
+
+df.ani1$reference <- gsub("Shom_DM21D06_acrlw.spades.pilon.fasta", "Shom_DM21D06_acrlw.Nano.pilon.fasta", df.ani1$reference)
+df.ani1$querry <- gsub("Shom_DM21D06_acrlw.spades.pilon.fasta", "Shom_DM21D06_acrlw.Nano.pilon.fasta", df.ani1$querry)
+
+#replace genomes names with final isolate names
+annotation1 <- annotation %>% select(isolate,genome)
+df.ani1.1 <- left_join(annotation1, df.ani1, by = c('genome' = 'reference'))
+df.ani1.1 <-  dplyr::rename(df.ani1.1, reference = isolate)
+df.ani1.2 <- left_join(annotation1, df.ani1.1, by = c('genome' = 'querry'))
+df.ani1.2 <-  dplyr::rename(df.ani1.2, querry = isolate)
+
+#convert to matrix to retain ani column
+matrix.results <- acast(df.ani1.2, reference~querry, value.var = "ani")
+
+#define order of isolates
+matrix.results1 <- as.data.frame(matrix.results)
+#rows
+matrix.results1 <- rownames_to_column(matrix.results1, var = "querry")
+
+matrix.results1 <- matrix.results1 %>% arrange(factor(querry, levels = c("SHNIH036", "SHNIH023", "SHNIH055", "SHNIH054", "SHNIH025", "SHNIH014", "SHNIH034", "SHNIH053", "SHNIH052", "SHNIH039", "SHNIH009", "SHNIH010", "SHNIH003", "SHNIH033", "SHNIH042", "SHNIH035", "SHNIH051", "SHNIH038", "SHNIH024", "SHNIH048", "SHNIH002", "SHNIH043", "SHNIH045", "SHNIH016", "SHNIH015", "SHNIH046", "SHNIH030", "SHNIH022", "SHNIH018", "SHNIH008", "SHNIH020", "SHNIH040", "SHNIH006", "SHNIH004", "SHNIH037", "SHNIH049", "SHNIH012", "SHNIH005", "SHNIH019", "SHNIH011", "SHNIH050", "SHNIH017", "SHNIH029", "SHNIH013", "SHNIH028", "SHNIH021", "SHNIH001", "SHNIH031", "SHNIH041", "SHNIH027", "SHNIH007", "SHNIH032", "SHNIH026", "SHNIH047", "SHNIH044", "SCNIH013", "SCNIH006", "SCNIH003", "SCNIH015", "SCNIH022", "SCNIH007", "SCNIH018", "SCNIH008", "SCNIH019", "SCNIH004", "SCNIH005", "SCNIH009", "SCNIH010", "SCNIH017", "SCNIH020", "SCNIH011", "SCNIH001", "SCNIH016", "SCNIH012", "SCNIH002", "SCNIH014", "SCNIH021", "SENIH025", "SENIH006", "NIHLM049", "SENIH011", "SENIH022", "SENIH032", "SENIH040", "SENIH021", "NIHLM018", "SENIH013", "SENIH027", "SENIH010", "SENIH016", "SENIH034", "SENIH033", "SENIH003", "NIHLM070", "NIHLM003", "SENIH008", "SENIH023", "NIHLM067", "SENIH041", "SENIH015", "SENIH043", "SENIH005", "SENIH039", "SENIH048", "NIHLM039", "NIHLM008", "NIHLM001", "SENIH044", "NIHLM087", "SENIH049", "SENIH029", "SENIH045", "NIHLM040", "SENIH017", "SENIH038", "NIHLM031", "SENIH037", "SENIH046", "NIHLM057", "NIHLM015", "SENIH042", "NIHLM037", "SENIH036", "NIHLM023", "SENIH047", "NIHLM061")))
+
+matrix.results1 <- column_to_rownames(matrix.results1, var = "querry")
+
+#columns
+#rows
+matrix.results1 <- matrix.results1 %>% select("SHNIH036", "SHNIH023", "SHNIH055", "SHNIH054", "SHNIH025", "SHNIH014", "SHNIH034", "SHNIH053", "SHNIH052", "SHNIH039", "SHNIH009", "SHNIH010", "SHNIH003", "SHNIH033", "SHNIH042", "SHNIH035", "SHNIH051", "SHNIH038", "SHNIH024", "SHNIH048", "SHNIH002", "SHNIH043", "SHNIH045", "SHNIH016", "SHNIH015", "SHNIH046", "SHNIH030", "SHNIH022", "SHNIH018", "SHNIH008", "SHNIH020", "SHNIH040", "SHNIH006", "SHNIH004", "SHNIH037", "SHNIH049", "SHNIH012", "SHNIH005", "SHNIH019", "SHNIH011", "SHNIH050", "SHNIH017", "SHNIH029", "SHNIH013", "SHNIH028", "SHNIH021", "SHNIH001", "SHNIH031", "SHNIH041", "SHNIH027", "SHNIH007", "SHNIH032", "SHNIH026", "SHNIH047", "SHNIH044", "SCNIH013", "SCNIH006", "SCNIH003", "SCNIH015", "SCNIH022", "SCNIH007", "SCNIH018", "SCNIH008", "SCNIH019", "SCNIH004", "SCNIH005", "SCNIH009", "SCNIH010", "SCNIH017", "SCNIH020", "SCNIH011", "SCNIH001", "SCNIH016", "SCNIH012", "SCNIH002", "SCNIH014", "SCNIH021", "SENIH025", "SENIH006", "NIHLM049", "SENIH011", "SENIH022", "SENIH032", "SENIH040", "SENIH021", "NIHLM018", "SENIH013", "SENIH027", "SENIH010", "SENIH016", "SENIH034", "SENIH033", "SENIH003", "NIHLM070", "NIHLM003", "SENIH008", "SENIH023", "NIHLM067", "SENIH041", "SENIH015", "SENIH043", "SENIH005", "SENIH039", "SENIH048", "NIHLM039", "NIHLM008", "NIHLM001", "SENIH044", "NIHLM087", "SENIH049", "SENIH029", "SENIH045", "NIHLM040", "SENIH017", "SENIH038", "NIHLM031", "SENIH037", "SENIH046", "NIHLM057", "NIHLM015", "SENIH042", "NIHLM037", "SENIH036", "NIHLM023", "SENIH047", "NIHLM061")
+
+matrix.results2 <- as.matrix(matrix.results1)
+```
+
+###3 Plot heatmap
+
+```{r}
+#define pheatmap annotations for sidebars
+ann_col <- annotation %>% select(isolate, site, subject_ID)
+ann_col <- column_to_rownames(ann_col, var = "isolate")
+ann_col$subject_ID <- as.character(ann_col$subject_ID)
+
+ann_row <- annotation %>% select(isolate, species)
+ann_row <- column_to_rownames(ann_row, var = "isolate")
+
+#define pheatmap sidebar colors
+ann_colors = list(
+  site = c("N" = "#98CBAC", "Ac" = "#DFEFBF", "Pc" = "#C5E28C", "Gc" = "#ACC973", "Ax" = "#EBEBC0", "Ic" = "#DBDB8D", "Um" = "#969659", "Ph" = "#FEE5BB", "Tw" = "#FDCF80", "Hp" = "#EDC0C0", "Vf" = "#DE8C8C", "Ba" = "#CEF3EF", "Mb" = "#93E4DB", "Oc" = "#D9E9F5", "Gb" = "#A6CCE9", "Al" = "#73A3C9",  "Ra" = "#53636F", "Ea" = "#CABFEF"),
+  subject_ID = c("HV1" = "#d3d0e1", "HV2" = "#9992ba","HV3" = "#cee0e3","HV4" = "#8db8bf", "HV6" = "#d9d9d9", "HV7" = "#a6a6a6", "HV8" = "#cae7d9", "HV9" = "#84c7a5", "HV21" = "#faebf2", "HV22" = "#e49abf", "HV23" = "#f0e7c2", "HV24" = "#dbc670",  "HV25" = "#e0d4d1", "HV29" = "#b89b94"),
+  species = c("S. hominis" = "#b1e1ae", "S. capitis" =  "#08a9e5", "S. epidermdis" = "#023880")) 
+
+#define pheatmap matrix colors 
+coul <- (brewer.pal(6, "YlOrRd"))
+col <- colorRampPalette(coul)(21.1719)
+
+x <- pheatmap((matrix.results)*100, scale = "none", legend = T, 
+               border_color = NA,
+               annotation_row = ann_row,
+               annotation_col = ann_col,
+               cluster_rows = T,
+               cluster_cols = T,
+               na_col="white",
+               clustering_distance_rows = "euclidean",
+               clustering_distance_cols = "euclidean", 
+               clustering_method = "ward.D", 
+               annotation_colors = ann_colors,
+               fontsize_row = 2.5, 
+               fontsize_col = 3.0,
+               color = col,
+               show_colnames = T,
+               show_rownames = T,
+               drop_levels = T,
+               main = '')
+
+save_pheatmap_pdf <- function(x, filename, width=11, height=9) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(x, "SD_fANI_allStaph.pdf")
+```
