@@ -1,0 +1,200 @@
+---
+title: "Figure 1A and 1C: Staphylococcal species relative abundance barplots and abundance-prevalence plot"
+author: "Payal Joglekar"
+output: html_document
+---
+
+###Background:
+Take the phyloseq object *ps_staph_ASV_filter_final.rds* created by subsetting ps_HV_site_time_final.ps.rds phyloseq object on Genus = Staphylococcus. 
+The purpose of this of this document is to create two data figures <br />
+<br />
+Figure1A. Mean relative abundance barplot showing all seventeen Staphylococcus species <br />
+Figure1C. Mean abunance for each species in each sample shown by flipped plot using the package ggstance. Grey bars depicting the prevalnce threshold will be shown using Adobe Illustrator.
+
+
+###Steps:
+#### 1.1 Load libraries and set parameters
+
+````{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+### 1.1 Load libraries 
+```{r, results='hide'}
+library(phyloseq); packageVersion("phyloseq")
+library(Biostrings); packageVersion("Biostrings")
+library(tidyverse)
+library(reshape)
+library("RColorBrewer") 
+theme_set(theme_bw())
+```
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+####1.2 Importing phyloseq object 
+```{r}
+ps_staph <- readRDS(file.path(path,"ps_staph_ASV_filter_final.rds"))
+ps_staph #check the phyloseq object
+```
+
+
+####1.3  Define a mapping file from staph phyloseq sample_data
+```{r}
+map_staph <- data.frame(sample_data(ps_staph))
+map_staph$Subject_ID<-as.numeric(levels(map_staph$Subject_ID))[map_staph$Subject_ID]
+```
+
+####1.4 Define color scheme
+```{r}
+species_colors_3 <- c("S. epidermidis" = "#1D2951", "S. capitis" = "#31afde", "S. hominis" = "#b1e1ae", "S. warneri" = "#ff9999", "S. haemolyticus"= "#056f00", "S. lugdunensis" = "#9e9d24", "S. saccharolyticus" = "#628df2" , "S. cohnii" = "#febf00", "S. auricularis" = "#ff8400", "S. saccharolyticus group" = "#6146ca", "S. aureus" = "#d30000", "S. pettenkoferi" = "#c35817", "S. petrasii" = "#c89369", "S. haemolyticus group" = "#60a130", "S. pasteuri"= "#de6f6f",  "S. saprophyticus" = "#fde403", "S. simulans" = "#592c4b") 
+
+sites_colors_9.1 <- c("sebaceous, Ea" = "#CABFEF", "sebaceous, Oc" = "#D9E9F5", "sebaceous, Gb" = "#A6CCE9", "sebaceous, Ra" = "#53636F", "sebaceous, Ba" = "#CEF3EF", "sebaceous, Mb" = "#93E4DB", "moist, N" = "#98CBAC", "moist, Ac" = "#DFEFBF", "moist, Ic" = "#DBDB8D", "moist, Tw" = "#FDCF80", "moist, Ph" = "#FEE5BB", "toenail, Tn" = "#887960", "dry, Hp" = "#EDC0C0", "dry, Vf" = "#DE8C8C")
+
+#Define plot features
+add_barplot_elements <- function(x) {
+      theme_update() +
+        theme(plot.title = element_text(color="black", size=12, face="bold.italic"),
+        axis.title.x = element_text(color="black", size=12, face="bold"),
+        axis.title.y = element_text(color="black", size=12, face="bold"),
+        axis.text.x = element_text(size= 10, angle=90, hjust=1),
+        axis.text.y = element_text(size = 10),
+        strip.text.x = element_text(color="black", size=10, face="bold"),
+        panel.spacing = unit(0.25, "lines"),
+        strip.background = element_rect(colour = "black", fill = "grey90"),
+        strip.placement = "outside",
+        legend.title = element_text(color = "black", size = 12),
+        legend.text = element_text(color = "black", size = 10)) 
+}
+
+```
+
+
+####2. Merge all ASV from the same species using the tax_glom function
+```{r}
+psglom <- tax_glom(ps_staph, taxrank="Species", NArm = TRUE)
+psglom
+
+get_taxa_unique(psglom, taxonomic.rank=rank_names(psglom)[7], errorIfNULL=TRUE)
+
+map_psglom <- data.frame(sample_data(psglom)) #make a metadata dataframe
+map_psglom$SeqDepths <- sample_sums(psglom)
+```
+
+
+####3 Mean relative abunance barplot to show all seventeen species across all HV-site pairs
+
+```{r}
+phyToTargetLvl_classic <- function(phy) {
+      #function to add a target level column to the dataframe
+      #input:  phyloseq object
+      #output: dataframe with sample metadata, taxonomy, relative abundance
+      #joinby='Label' #used to join tax counts with metadata (was 'LibraryID')
+  
+      #any phylum not on this list will be collapsed into Other_Phyla
+      target_phyla=c("Staphylococcus_epidermidis", "Staphylococcus_&capitis&caprae", "Staphylococcus_hominis", "Staphylococcus_aureus", "Staphylococcus_warneri", "Staphylococcus_pettenkoferi", "Staphylococcus_auricularis", "Staphylococcus_saccharolyticus", "Staphylococcus_Species4", "Staphylococcus_cohnii", "Staphylococcus_haemolyticus", "Staphylococcus_lugdunensis", "Staphylococcus_Species45", "Staphylococcus_simulans", "Staphylococcus_saprophyticus", "Staphylococcus_petrasii", "Staphylococcus_pasteuri")
+      #this deteremines the order of TargetLvls
+      target_taxa=c("Staphylococcus_epidermidis", "Staphylococcus_&capitis&caprae", "Staphylococcus_hominis", "Staphylococcus_aureus", "Staphylococcus_warneri", "Staphylococcus_pettenkoferi", "Staphylococcus_auricularis", "Staphylococcus_saccharolyticus", "Staphylococcus_Species4", "Staphylococcus_cohnii", "Staphylococcus_haemolyticus", "Staphylococcus_lugdunensis", "Staphylococcus_Species45", "Staphylococcus_simulans", "Staphylococcus_saprophyticus", "Staphylococcus_petrasii", "Staphylococcus_pasteuri")
+      
+      #transform data
+      ra = transform_sample_counts(phy, function(x) x/sum(x))
+      dp <- data.frame(sample_data(ra))
+      dp <- dp %>% rownames_to_column("variable")
+      tax.count <- data.frame(data.frame(ra@tax_table@.Data, t(otu_table(ra))))
+      dfm = melt(tax.count, colnames(tax_table(ra))) 
+      colnames(dfm)[colnames(dfm) == 'variable'] 
+      dfm$variable <- gsub("[^0-9]", "", dfm$variable)
+      df = plyr::join(dfm, dp) 
+      ###
+      
+      #now we need to add a target level column of species to the dataframe
+      df$TargetLvl<-as.factor(df$Species)
+
+      #add the rest of the levels to the TargetLvl factor
+      levels(df$TargetLvl) <- c(levels(df$TargetLvl), setdiff(target_taxa,target_phyla))
+
+      #Reorder factors
+      df$TargetLvl<-factor(df$TargetLvl, levels = target_taxa)
+      
+      return(df)
+}
+
+#plot:
+mixed_df = phyToTargetLvl_classic(psglom)
+
+#By Site
+mixed_df$SiteType[mixed_df$Site == 'Hp'] <- 'dry, Hp'
+mixed_df$SiteType[mixed_df$Site == 'Vf'] <- 'dry, Vf'
+mixed_df$SiteType[mixed_df$Site == 'Ea'] <- 'sebaceous, Ea'
+mixed_df$SiteType[mixed_df$Site == 'Ba'] <- 'sebaceous, Ba'
+mixed_df$SiteType[mixed_df$Site == 'Gb'] <- 'sebaceous, Gb'
+mixed_df$SiteType[mixed_df$Site == 'Mb'] <- 'sebaceous, Mb'
+mixed_df$SiteType[mixed_df$Site == 'Oc'] <- 'sebaceous, Oc'
+mixed_df$SiteType[mixed_df$Site == 'Ra'] <- 'sebaceous, Ra'
+mixed_df$SiteType[mixed_df$Site == 'N'] <- 'moist, N'
+mixed_df$SiteType[mixed_df$Site == 'Ac'] <- 'moist, Ac'
+mixed_df$SiteType[mixed_df$Site == 'Ic'] <- 'moist, Ic'
+mixed_df$SiteType[mixed_df$Site == 'Ph'] <- 'moist, Ph'
+mixed_df$SiteType[mixed_df$Site == 'Tw'] <- 'moist, Tw'
+mixed_df$SiteType[mixed_df$Site == 'Tn'] <- 'toenail, Tn'
+mixed_df$SiteType <- factor(mixed_df$SiteType, levels = c("sebaceous, Ea", "sebaceous, Oc", "sebaceous, Gb", "sebaceous, Ra",  "sebaceous, Ba", "sebaceous, Mb", "moist, N",  "moist, Ac", "moist, Ic", "moist, Tw", "moist, Ph" , "toenail, Tn", "dry, Hp", "dry, Vf"))
+
+
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_epidermidis'] <- 'S. epidermidis'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_&capitis&caprae'] <- 'S. capitis'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_saccharolyticus'] <- 'S. saccharolyticus'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_Species4'] <- 'S. saccharolyticus group'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_warneri'] <- 'S. warneri'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_pasteuri'] <- 'S. pasteuri'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_aureus'] <- 'S. aureus'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_hominis'] <- 'S. hominis'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_haemolyticus'] <- 'S. haemolyticus'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_Species45'] <- 'S. haemolyticus group'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_lugdunensis'] <- 'S. lugdunensis'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_auricularis'] <- 'S. auricularis'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_pettenkoferi'] <- 'S. pettenkoferi'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_saprophyticus'] <- 'S. saprophyticus'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_cohnii'] <- 'S. cohnii'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_simulans'] <- 'S. simulans'
+mixed_df$SppRename[mixed_df$Species == 'Staphylococcus_petrasii'] <- 'S. petrasii'
+
+mixed_df$SppRename <- factor(mixed_df$SppRename, levels = c('S. epidermidis','S. capitis', 'S. hominis', 'S. warneri', 'S. lugdunensis', 'S. haemolyticus', 'S. auricularis', 'S. cohnii', 'S. pettenkoferi', 'S. aureus',  'S. saccharolyticus', 'S. saccharolyticus group', 'S. saprophyticus', 'S. simulans', 'S. pasteuri', 'S. haemolyticus group', 'S. petrasii'))
+
+s =  ggplot(mixed_df, aes(as.character(Subject_ID), value, fill=factor(SppRename))) +
+        geom_bar(stat="identity", position="stack") +
+        labs(fill = "Staphylococcus species") +
+        ylab("Mean Relative Abundance") +  xlab("Subject_ID") +
+        scale_fill_manual(values=species_colors_3) + 
+        facet_wrap(~SiteType, ncol=7) +
+        add_barplot_elements()
+        
+s + theme(axis.text.x = element_text(size= 6, angle=90),
+          axis.title.x = element_text(vjust = 6),
+          legend.title = element_text(color = "black", size = 12),
+          legend.text = element_text(color = "black", size = 11)) 
+```
+
+
+####4 Plot to show species prevalence and abundance across all HV-site pairs using ggstance
+```{r}
+
+library(ggstance)
+
+#Use the same df generated for barplots
+pa <- mixed_df %>% 
+  group_by(SppRename) %>%
+  ggplot() + geom_point(aes(y = value , x = as.factor(SppRename), fill = SiteType), colour="black", pch=21,size = 1, position = position_dodge(width = 0.8)) +
+  scale_fill_manual(values = sites_colors_9.1) +
+  add_barplot_elements()
+
+pa + theme(axis.text.x = element_text(size= 12, angle = 90),
+           axis.text.y = element_text(size= 12),
+           legend.title = element_text(color = "black", size = 12),
+           legend.text = element_text(color = "black", size = 10), 
+           legend.key.width = unit(0.5,"cm"), 
+           legend.key.height = unit(0.5,"cm"))
+```
+
+
+
