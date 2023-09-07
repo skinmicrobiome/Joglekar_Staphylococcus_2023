@@ -1,0 +1,252 @@
+---
+title: "Figure S2: Phylum-level relative abundance barplots"
+author: "Payal Joglekar"
+output: html_document
+---
+
+
+===============================================================================
+
+###Background:
+In this document (supplementary data) we will generate a mean relative abundance barplot at the phylum and genus level using the phyloseq object ps_HV_site_time_final.ps.rds. Only select taxa will be represented.
+  
+###Steps:
+
+#### 1.1 Load libraries and set parameters
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+#options(stringsAsFactors = TRUE)
+```
+
+```{r, results='hide'}
+library(phyloseq); packageVersion("phyloseq")
+library(tidyverse)
+library("RColorBrewer") 
+library(reshape)
+theme_set(theme_bw())
+```
+
+####1.2 Set path
+```{r, include=FALSE}
+path <- getwd()
+```
+
+####1.3 Importing phyloseq object 
+```{r}
+ps_HV <- readRDS(file.path(path,"ps_HV_site_time_final.ps.rds"))
+ps_HV #check the datset
+```
+
+####1.4  Define a mapping file from phyloseq sample_data
+```{r}
+map_HV <- data.frame(sample_data(ps_HV))
+map_HV$Subject_ID<-as.character(map_HV$Subject_ID)
+```
+
+#####1.5  Define plot features
+```{r}
+add_barplot_elements <- function(x) {
+      theme_update() +
+        theme(plot.title = element_text(color="black", size=12, face="bold.italic"),
+        axis.title.x = element_text(color="black", size=12, face="bold"),
+        axis.title.y = element_text(color="black", size=12, face="bold"),
+        axis.text.x = element_text(size= 10, angle=90, hjust=1),
+        axis.text.y = element_text(size = 10),
+        strip.text.x = element_text(color="black", size=10, face="bold"),
+        panel.spacing = unit(0.25, "lines"),
+        strip.background = element_rect(colour = "black", fill = "grey90"),
+        strip.placement = "outside",
+        legend.title = element_text(color = "black", size = 12),
+        legend.text = element_text(color = "black", size = 10)) 
+}
+```
+
+
+####2.1 Prevalence of each phylum in all samples
+
+Generate a table with all the phyla in ps_HV and the number of ASV's representing them. Note that samples with multiple ASVs that belong to a given phylum are counted only once
+```{r}
+# Create a factor corresponding to the Phylum
+genfac = factor(tax_table(ps_HV)[, "Phylum"])
+# Tabulate the counts for each genus in each sample
+gentab = apply(otu_table(ps_HV), MARGIN =1, function(x) {
+  tapply(x, INDEX = genfac, FUN = sum, na.rm = TRUE, simplify = TRUE)
+})
+
+head(gentab)[1:5, 1:5]
+
+observationThreshold = 0
+HV_ASVsums_phyla <- apply(gentab > observationThreshold, 1, sum)
+
+HV_ASVsums_phyla
+
+HV_ASVsums_phyla <- as.matrix(HV_ASVsums_phyla)
+
+#write.csv(HV_ASVsums_phyla, file.path(path, "HV_phyla_totalASVreads_nooverlap.csv"))
+```
+
+####2.2 Filtering low abundance ASVs
+
+#####Manual Prevalence filtering
+```{r}
+#**TAXONOMIC FILTERING**
+# Show available ranks in the dataset
+rank_names(ps_HV)
+
+# Create table, number of features for each phyla
+table(tax_table(ps_HV)[, "Phylum"], exclude = NULL)
+
+filterPhyla <- c("Unclass_Phylum", "Cyanobacteria/Chloroplast", "Bacteria_Phylum" ) #undefined taxonomy
+
+ps_HV <- subset_taxa(ps_HV, !is.na(Phylum) & !Phylum %in% filterPhyla)
+
+
+# Compute prevalence of each feature, store as data.frame
+prevdf = apply(X = otu_table(ps_HV),
+               MARGIN = ifelse(taxa_are_rows(ps_HV), yes = 1, no = 2),
+               FUN = function(x){sum(x > 0)})
+
+# Add taxonomy and total read counts to this data.frame
+prevdf = data.frame(Prevalence = prevdf, #Returns the prevalence of each ASV (i.e. number of samples carrying the ASV) 
+                    TotalAbundance = taxa_sums(ps_HV), #Returns the total number of reads observed for each ASV
+                    tax_table(ps_HV))
+
+#prevdf
+
+#Compute the total and average prevalences of the features in each phylum.
+plyr::ddply(prevdf, "Phylum", function(df1){cbind(mean(df1$Prevalence),sum(df1$Prevalence))}) #mean is samples per ASV that repsents a given phylum; sum is total samples that carry phylum reads (counts multiple times a sample that have more than one ASV/phylum); sum/mean will provide number of ASVs that represent a given species
+
+
+# Define phyla to filter; based on retaining phyla that have a sum > 10
+filterPhyla1 = c("Nitrospirae", "SR1", "Synergistetes", "Tenericutes", "Armatimonadetes", "candidate_division_WPSUnclassified1", "Chloroflexi", "Gemmatimonadetes" )
+
+# Filter entries with unidentified Phylum.
+ps_HV = subset_taxa(ps_HV, !Phylum %in% filterPhyla1)
+ps_HV
+
+
+#remove OTUs with zero abundance
+any(taxa_sums(ps_HV) == 0) #TRUE means positive for OTUs with zero abundabce across all samples
+sum(taxa_sums(ps_HV) == 0, na.rm = TRUE) # actual number of OTUs with zero abundance (good to ckeck number of OTUs that will be lost)
+#ps_HV2 <- prune_taxa(taxa_sums(ps_HV) > 0, ps_HV) #remove
+#any(taxa_sums(ps_HV2) == 0) # check again if any OTUs are not present in any samples
+
+#remove samples with zero taxa
+any(sample_sums(ps_HV) == 0) #TRUE means positive for samples with no OTUs
+sum(sample_sums(ps_HV) == 0, na.rm = TRUE) # actual number of OTUs with zero abundance (good to ckeck number of OTUs that will be lost)
+#ps_HV2 <- prune_samples(sample_sums(ps_HV) > 0, ps_HV) #remove
+#any(sample_sums(ps_HV2) == 0) # check again if any OTUs are not present in any samples
+```
+
+
+####3 Mean Relative abundance plot (figure S2)
+
+We will use the phyloseq object, ps_HV, that has been filtered for "unclassified"" and "low prevalence" phyla. Use a custom script to to extract a dataframe for making barcharts with mixed phylogenetic levels, starting with a phyloseq object.
+```{r}
+
+library("RColorBrewer") 
+
+ phyToTargetLvl_classic <- function(phy) {
+      #function to add a target level column to the dataframe
+      #  input:  phyloseq object
+      #  output: dataframe with sample metadata, taxonomy, relative abundance
+      #joinby='Label' #used to join tax counts with metadata (was 'LibraryID')
+   
+      #any phylum not on this list will be collapsed into Other_Phyla
+      target_phyla=c("Actinobacteria", "Bacteroidetes", "Proteobacteria", "Firmicutes")
+  
+      target_taxa=c("Other_Phyla", "Actinobacteria",  "G_Cutibacterium", "G_Corynebacterium",  "G_Micrococcus",
+                    "Bacteroidetes",  "G_Bacteroides", "G_Prevotella", "G_Flavobacterium",  
+                    "Proteobacteria", "G_Pseudomonas", "G_Xanthomonas", "G_Neisseria",   
+                    "Firmicutes", "G_Anaerococcus", "G_Streptococcus", "G_Staphylococcus")
+      #export a palette to the global environment
+      palette<-c("gray", brewer.pal(4, "Greens"),brewer.pal(4, "PuRd"),brewer.pal(4, "Reds"), brewer.pal(4, "Blues"))
+      names(palette)<-target_taxa
+      assign("classic_palette", palette, envir = .GlobalEnv)
+      ##########################
+      #transform data
+      ra = transform_sample_counts(phy, function(x) x/sum(x))
+
+      #extracting a dataframe to operate on
+      domain.phy <- tax_glom(ra, taxrank="Genus") # if i see invalid archetype error, use domain.phy <- (ra, taxrank='Genus') (basically dont use tax_glom)
+      dp <- data.frame(sample_data(domain.phy))
+      dp <- dp %>% rownames_to_column("variable")
+      tax.count <- data.frame(data.frame(domain.phy@tax_table@.Data, t(otu_table(domain.phy))))
+      dfm = melt(tax.count, colnames(tax_table(domain.phy))) 
+      colnames(dfm)[colnames(dfm) == 'variable'] 
+      dfm$variable <- gsub("[^0-9]", "", dfm$variable)
+      df = plyr::join(dfm, dp) 
+      ###
+      
+      #now we need to add a target level column to the dataframe, default to phylum
+      df$TargetLvl<-as.factor(df$Phylum)
+      #First collapse minor phyla->other and get rid of the levels
+      levels(df$TargetLvl) <- c(levels(df$TargetLvl), "Other_Phyla")
+      df$TargetLvl[! (df$Phylum %in% target_phyla)]<- 'Other_Phyla'
+      df$TargetLvl<-droplevels(df$TargetLvl)
+
+      #add the rest of the levels to the TargetLvl factor
+      levels(df$TargetLvl) <- c(levels(df$TargetLvl), setdiff(target_taxa,target_phyla))
+
+  
+      #These commands manually set the mapping from taxa to TargetLvl
+      df$TargetLvl[df$Genus == 'Propionibacterium'] <- 'G_Cutibacterium'
+      df$TargetLvl[df$Genus == 'Corynebacterium'] <- 'G_Corynebacterium'
+      df$TargetLvl[df$Genus ==  'Micrococcus'] <- 'G_Micrococcus'
+      df$TargetLvl[df$Genus ==  'Flavobacterium'] <- 'G_Flavobacterium'
+      df$TargetLvl[df$Genus ==  'Prevotella'] <- 'G_Prevotella'
+      df$TargetLvl[df$Genus ==  'Bacteroides'] <- 'G_Bacteroides'
+      df$TargetLvl[df$Genus ==  'Staphylococcus'] <- 'G_Staphylococcus'
+      df$TargetLvl[df$Genus ==  'Streptococcus'] <- 'G_Streptococcus'
+      df$TargetLvl[df$Genus ==  'Anaerococcus'] <- 'G_Anaerococcus'
+      df$TargetLvl[df$Genus ==  'Neisseria'] <- 'G_Neisseria'
+      df$TargetLvl[df$Genus ==  'Xanthomonas'] <- 'G_Xanthomonas'
+      df$TargetLvl[df$Genus ==  'Pseudomonas'] <- 'G_Pseudomonas'
+
+      #Reorder factors
+      df$TargetLvl<-factor(df$TargetLvl, levels = target_taxa)
+      
+      return(df)
+}
+
+#plot:
+mixed_df = phyToTargetLvl_classic(ps_HV)
+
+#By Site
+mixed_df$SiteType[mixed_df$Site == 'Hp'] <- 'dry, Hp'
+mixed_df$SiteType[mixed_df$Site == 'Vf'] <- 'dry, Vf'
+mixed_df$SiteType[mixed_df$Site == 'Ea'] <- 'sebaceous, Ea'
+mixed_df$SiteType[mixed_df$Site == 'Ba'] <- 'sebaceous, Ba'
+mixed_df$SiteType[mixed_df$Site == 'Gb'] <- 'sebaceous, Gb'
+mixed_df$SiteType[mixed_df$Site == 'Mb'] <- 'sebaceous, Mb'
+mixed_df$SiteType[mixed_df$Site == 'Oc'] <- 'sebaceous, Oc'
+mixed_df$SiteType[mixed_df$Site == 'Ra'] <- 'sebaceous, Ra'
+mixed_df$SiteType[mixed_df$Site == 'N'] <- 'moist, N'
+mixed_df$SiteType[mixed_df$Site == 'Ac'] <- 'moist, Ac'
+mixed_df$SiteType[mixed_df$Site == 'Ic'] <- 'moist, Ic'
+mixed_df$SiteType[mixed_df$Site == 'Ph'] <- 'moist, Ph'
+mixed_df$SiteType[mixed_df$Site == 'Tw'] <- 'moist, Tw'
+mixed_df$SiteType[mixed_df$Site == 'Tn'] <- 'toenail, Tn'
+mixed_df$SiteType <- factor(mixed_df$SiteType, levels = c("sebaceous, Ea", "sebaceous, Oc", "sebaceous, Gb", "sebaceous, Ra",  "sebaceous, Ba", "sebaceous, Mb", "moist, N",  "moist, Ac", "moist, Ic", "moist, Tw", "moist, Ph" , "toenail, Tn", "dry, Hp", "dry, Vf"))
+
+mixed_df$TargetLvl <- factor(mixed_df$TargetLvl, levels = c('Actinobacteria', 'G_Cutibacterium', 'G_Corynebacterium', 'G_Micrococcus', 'Bacteroidetes', 'G_Bacteroides', 'G_Prevotella', 'G_Flavobacterium', 'Proteobacteria', 'G_Pseudomonas', 'G_Xanthomonas', 'G_Neisseria', 'Firmicutes', 'G_Anaerococcus', 'G_Streptococcus', 'G_Staphylococcus', 'Other_Phyla'))
+
+s =  ggplot(mixed_df, aes(as.character(Subject_ID), value, fill=TargetLvl)) +
+        geom_bar(stat="identity", position="stack") +
+        labs(fill = "Bacterial Taxa") +
+        ylab("Mean Relative Abundance")+  xlab("Subject_ID")  +
+        scale_colour_manual(values=classic_palette) + 
+        scale_fill_manual(values=classic_palette) + 
+        facet_wrap(~SiteType, ncol=6) +
+        add_barplot_elements()
+        
+s + theme(axis.text.x = element_text(size= 6, angle=90),
+          axis.title.x = element_text(vjust = 6),
+          legend.title = element_text(color = "black", size = 12),
+          legend.text = element_text(color = "black", size = 11)) 
+
+ggsave(file.path(path, "Bar plots Mean Relative Abundance of Bacterial Phyla plus Genus.png"), dpi = 300, height = 15, width = 10)
+
+```
+
+
