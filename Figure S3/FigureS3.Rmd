@@ -1,0 +1,122 @@
+---
+title: "Figure S3: Mean relative abundance boxplots for core staphylococcal species"
+author: "Payal Joglekar"
+output: html_document
+---
+
+###Background:
+Take the phyloseq object *ps_staph_ASV_filter_final.rds* created by subsetting ps_HV_site_time_final.ps.rds phyloseq object on Genus = Staphylococcus.  
+<br />
+The purpose of this of this document is to create a mean relative abundance barplot of the three major Staphylococcus species (Figure S3)
+
+
+###Steps:
+#### 1.1 Load libraries and set parameters
+
+````{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+### 1.1 Load libraries 
+```{r, results='hide'}
+library(phyloseq); packageVersion("phyloseq")
+library(Biostrings); packageVersion("Biostrings")
+library(tidyverse)
+library("RColorBrewer") 
+theme_set(theme_bw())
+```
+
+```{r, include=FALSE}
+path <- path <- getwd()
+```
+
+####1.2 Importing phyloseq object 
+```{r}
+ps_staph <- readRDS(file.path(path,"ps_staph_ASV_filter_final.rds"))
+ps_staph #check the phyloseq object
+```
+
+
+####1.3  Define a mapping file from staph phyloseq sample_data
+```{r}
+map_staph <- data.frame(sample_data(ps_staph))
+map_staph$Subject_ID<-as.numeric(levels(map_staph$Subject_ID))[map_staph$Subject_ID]
+```
+
+####1.4 Define color scheme
+```{r}
+species_colors_3 <- c("S. epidermidis" = "#1D2951", "S. capitis" = "#31afde", "S. hominis" = "#b1e1ae") 
+
+sites_colors_9 <- c("N" = "#98CBAC", "Ac" = "#DFEFBF", "Pc" = "#C5E28C", "Gc" = "#ACC973", "Ax" = "#EBEBC0", "Ic" = "#DBDB8D", "Um" = "#969659", "Ph" = "#FEE5BB", "Tw" = "#FDCF80", "Tn" = "#887960", "Hp" = "#EDC0C0", "Vf" = "#DE8C8C", "Ba" = "#CEF3EF", "Mb" = "#93E4DB", "Oc" = "#D9E9F5", "Gb" = "#A6CCE9", "Al" = "#73A3C9",  "Ra" = "#53636F", "Ea" = "#CABFEF")
+
+#Define plot features
+add_barplot_elements <- function(x) {
+      theme_update() +
+        theme(plot.title = element_text(color="black", size=12, face="bold.italic"),
+        axis.title.x = element_text(color="black", size=12, face="bold"),
+        axis.title.y = element_text(color="black", size=12, face="bold"),
+        axis.text.x = element_text(size= 10, angle=90, hjust=1),
+        axis.text.y = element_text(size = 10),
+        strip.text.x = element_text(color="black", size=10, face="bold"),
+        panel.spacing = unit(0.25, "lines"),
+        strip.background = element_rect(colour = "black", fill = "grey90"),
+        strip.placement = "outside",
+        legend.title = element_text(color = "black", size = 12),
+        legend.text = element_text(color = "black", size = 10)) 
+}
+
+```
+
+
+####2. Merge all ASV from the same species using the tax_glom function
+```{r}
+psglom <- tax_glom(ps_staph, taxrank="Species", NArm = TRUE)
+psglom
+
+map_psglom <- data.frame(sample_data(psglom)) #make a metadata dataframe
+map_psglom$SeqDepths <- sample_sums(psglom)
+```
+
+
+####4 We wil now generate boxplot of select species across different body sites
+```{r}
+# Transform Taxa counts to relative abundance
+ra <- transform_sample_counts(psglom, function(OTU) OTU/sum(OTU) * 100)
+taxa_tbl <- psmelt(ra)
+
+#species to subset
+taxa_keep <- c("Staphylococcus_hominis", "Staphylococcus_&capitis&caprae", "Staphylococcus_epidermidis") #option one
+
+#trim by species and/or site
+taxa_tbl_spp <- taxa_tbl %>% filter(Species %in% taxa_keep)
+
+
+#site order
+taxa_tbl_spp$Site <- factor(taxa_tbl_spp$Site, levels = c("Ea", "Oc", "Gb", "Ra", "Ba", "Mb", "Hp", "Vf",  "N", "Ac", "Ic", "Tw", "Ph" , "Tn"))
+
+#rename species
+taxa_tbl_spp$SppRename[taxa_tbl_spp$Species == 'Staphylococcus_hominis'] <- 'S. hominis'
+taxa_tbl_spp$SppRename[taxa_tbl_spp$Species == 'Staphylococcus_&capitis&caprae'] <- 'S. capitis'
+taxa_tbl_spp$SppRename[taxa_tbl_spp$Species == 'Staphylococcus_epidermidis'] <- 'S. epidermidis'
+
+
+#combined species boxplot
+bp_species <- taxa_tbl_spp %>% 
+  ggplot(aes(x = Site, y = Abundance, fill = SppRename)) +
+  geom_boxplot() +
+  #facet_wrap(~ SiteType, scales = "fixed", nrow = 1) +
+  scale_fill_manual(values = species_colors_3) +
+  labs(x = "Body site",
+       y = "Mean Relative Abundance",
+       title = "Species Relative Abundance")  +
+  theme(
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.text = element_text(size = 14),
+    legend.position = "bottom"
+  ) 
+
+bp_species
+```
+
+
