@@ -1,0 +1,328 @@
+---
+title: "Figure 2A and 2B: Staphylococcus genus pangenome"
+author: "Payal Joglekar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+###Background:
+The purpose of this of this document is generate Figure 2A and 2B using the genus_pangenome matrix: genus_gene_presence_absence.csv. This file was generated using a reciprocal-best-blast approach for clustering cross-species orthologs from individual species pan-genomes 
+
+Steps:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+1. Load libraries
+
+```{r cars}
+library(tidyverse)
+library(reshape2)
+library(data.table)
+library(ggVennDiagram)
+library(RColorBrewer)
+library(pheatmap)
+```
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+
+2. Upload files and tidy them
+
+```{r}
+#pananroo gene_presence_absence
+df <- fread(file.path(path,"genus_gene_presence_absence.csv"), data.table = FALSE) %>% as_tibble()
+
+df1 <- column_to_rownames(df, var = "ID")
+df1 <- df1 %>% select(3:128)
+
+#metadata
+meta <- read.csv(file.path(path,"Figure2_metadata.csv"), header=T)
+ 
+#trim metadata
+meta <- meta %>% dplyr::rename(subject_ID = "subject.number.for.manuscript")
+meta <- meta %>% select(c(isolate, genome_trim, species, subject_ID, site))
+
+#change genome_trim names to isolate names
+df1t <- as.data.frame(t(df1))
+df1t <- rownames_to_column(df1t, var = "genome_trim")
+meta1 <- meta %>% select(isolate, genome_trim)
+df1t1 <- left_join(meta1, df1t, by = 'genome_trim')
+df1t1 <- df1t1 %>% select(!genome_trim)
+df1t1 <- column_to_rownames(df1t1, var = "isolate")
+```
+
+3.1 Genus pan-genome pie chart (Figure 2A)
+```{r}
+#create a new column with # of genomes carrying a gene
+df2 <- as.data.frame(t(df1t1)) #transpose
+df2 <- df2 %>% mutate(sum = rowSums(df2)) #this gives number of genomes, temporary column
+df2$sum <- as.numeric(df2$sum)
+
+#total genes
+nrow(df2)
+#core
+c <- nrow(df2 %>% filter(sum >= 126))
+#soft-core
+sc <- nrow(df2 %>% filter(sum >= 120 & sum < 126))
+#shell
+s <- nrow(df2 %>% filter(sum >= 19 & sum < 120))
+#cloud
+r <- nrow(df2 %>% filter(sum < 19))
+
+c(c, sc, s, r)
+
+
+#ggplot to draw a pie
+#https://dk81.github.io/dkmathstats_site/rvisual-piecharts.html
+#create a df with gene classification values
+pie <- data.frame(
+      group = c("Core (99% <= strains <= 100%)", "Soft-core (95% <= strains < 99%)", "Shell (15% <= strains < 95%)", "Cloud (0% <= strains < 15%)"),
+      value = c(c, sc, s, r)
+)
+
+#set as factor
+pie$group = factor(pie$group, levels = c("Core (99% <= strains <= 100%)", "Soft-core (95% <= strains < 99%)", "Shell (15% <= strains < 95%)", "Cloud (0% <= strains < 15%)"))
+pie$group = fct_rev(pie$group)
+
+pie
+
+#draw a barplot
+bp <- ggplot(pie, aes(x = "", y = value, fill=group))+
+       geom_bar(width = 1, stat = "identity")
+bp
+
+
+#Pie Chart With Percentage & Counts Labels:
+pie_labels <- pie %>%
+  mutate(group = factor(group, 
+                       levels = group[length(group):1]),
+         cumulative = cumsum(value),
+         midpoint = cumulative - value / 2,
+         labels = paste0(round((value/ sum(value)) * 100, 1), "%", " (", value, ") "))
+
+#pie_labels$group = fct_rev(pie_labels$group)
+
+#Check table:
+pie_labels
+
+col <- (brewer.pal(4, "YlGn"))
+col <- (brewer.pal(4, "YlOrBr"))
+
+#draw ggplot
+p <- ggplot(pie_labels, aes(x = "", y = value, fill = group)) +
+  geom_bar(width = 100, stat = "identity") +
+  coord_polar(theta = "y", start = 0) +
+  scale_fill_manual(values = col) +
+  labs(x = "", y = "", title = "Genus pan-genome distribution \n",
+       fill = "Gene Category") + 
+  geom_text(aes(x = 1.5, y = midpoint , label = labels), color="black",
+            fontface = "bold", size = 5) +
+  theme(plot.title = element_text(hjust = 0.5), 
+        legend.title = element_text(hjust = 0.5, face="bold", size = 10), text = element_text(family = "Arial"))
+
+p1<- p + guides(fill = guide_legend(reverse = TRUE))
+
+p1
+ 
+
+#ggsave(p1, file="SD_Staph_pangenome_pie2.pdf", height = 5, width = 7.5, dpi = 600)  
+```
+
+
+3.2 Pangenome frequency barplot (Figure 2A)
+```{r}
+#select rowSums from presence absence table
+f <- df %>% select(c("all_sum", "sub-group"))
+f <- f %>% dplyr::rename(genomes = all_sum)
+f1 <- as.data.frame(f %>% table())
+f1 <- f1 %>% dplyr::rename(genes = Freq)
+f1 <- f1 %>% filter(!genes == 0)
+c <- c("core" = "#238443", "soft-core" = "#78C679", "shell" = "#C2E699", "cloud" = "#FFFFCC")
+c1 <- c("core" = "#1a6332", "soft-core" = "#47a848", "shell" = "#94d34c", "cloud" = "#ffff59")
+
+c <- c("core" = "#CC4C02", "soft-core" = "#FE9929", "shell" = "#FED98E", "cloud" = "#FFFFD4")
+c1 <- c("core" = "#993902", "soft-core" = "#dc7401", "shell" = "#fdb82c", "cloud" = "#ffff5f")
+
+pf <- ggplot(f1, aes(x = genomes, y = genes, fill=sub.group)) + 
+      geom_bar(aes(color = sub.group),stat = "identity") + 
+      scale_fill_manual(values = c) +
+      scale_color_manual(values = c1) +
+      theme_classic() + 
+      theme(axis.text.x = element_text(angle = 90, size  = 6))
+      
+pf 
+
+#ggsave(pf, file="SD_Staph_pangenome_freq_barplot2.pdf", height = 5, width = 10, dpi = 300) 
+
+```
+
+
+4.1 Counts for Venn Diagram (Figure 2B)
+```{r}
+#make gene list for each species
+#capitis
+metac <- meta %>% filter(species == "S. capitis")
+dfc <- df2 %>% select(metac$isolate)
+dfc <- dfc %>% mutate(sum = rowSums(dfc)) 
+dfc <- dfc %>% filter(sum > 0)
+cap <- as.vector(rownames(dfc))
+
+#epidermidis
+metae <- meta %>% filter(species == "S. epidermidis")
+dfe <- df2 %>% select(metae$isolate)
+dfe <- dfe %>% mutate(sum = rowSums(dfe)) 
+dfe <- dfe %>% filter(sum > 0)
+epi <- as.vector(rownames(dfe))
+
+#hominis
+metah <- meta %>% filter(species == "S. hominis")
+dfh <- df2 %>% select(metah$isolate)
+dfh <- dfh %>% mutate(sum = rowSums(dfh)) 
+dfh <- dfh %>% filter(sum > 0)
+hom <- as.vector(rownames(dfh))
+
+#https://cran.r-project.org/web/packages/ggVennDiagram/vignettes/using-ggVennDiagram.html
+gene_list <- list(capitis = cap, 
+                  epidermidis = epi, 
+                  hominis = hom)
+
+#Venn
+p2 <- ggVennDiagram(gene_list, category.names = c("S. capitis","S. epidermidis","S. hominis"), label_alpha = 0, set_color = c("black","black","black")) + 
+    scale_x_continuous(expand = expansion(mult = .1)) +
+    scale_color_manual(values = c("black","black","black")) 
+
+p2 + scale_fill_distiller(palette = "Spectral",  direction = 7 )
+
+
+#OR
+p2 +ggplot2::scale_fill_gradientn(colors = c("darkslateblue", "darkorange", "darkolivegreen"))
+
+```
+
+4.2 Another way of making area proportional Venn Diagram (Figure 2B)
+Use output from the above charts:
+
+```{r}
+library(venneuler)
+MyVenn <- venneuler(c(Se=1707,Sc=594, Sh=2353, "Sc&Se"=359, 
+                       "Sc&Sh"=146,"Se&Sh"=500,"Sc&Se&Sh"=2085))
+#MyVenn$labels <- c("Se\n594","Se\n1707", "Sh\n2353")
+MyVenn$labels <- c("")
+
+plot(MyVenn)
+
+```
+
+
+5.1 Plot genus pan-genome matrix (Figure 2C)
+
+```{r}
+#plot
+#annotation_row = meta1, 
+dfm <- as.matrix(df1t1)
+
+#plot pheatmap
+#define pheatmap annotations for sidebars
+ann_row <- meta %>% select(isolate, site, subject_ID, species)
+ann_row <- column_to_rownames(ann_row, var = "isolate")
+
+
+#define pheatmap sidebar colors
+ann_colors = list(
+  site = c("N" = "#98CBAC", "Ac" = "#DFEFBF", "Pc" = "#C5E28C", "Gc" = "#ACC973", "Ax" = "#EBEBC0", "Ic" = "#DBDB8D", "Um" = "#969659", "Ph" = "#FEE5BB", "Tw" = "#FDCF80", "Hp" = "#EDC0C0", "Vf" = "#DE8C8C", "Ba" = "#CEF3EF", "Mb" = "#93E4DB", "Oc" = "#D9E9F5", "Gb" = "#A6CCE9", "Al" = "#73A3C9",  "Ra" = "#53636F", "Ea" = "#CABFEF"),
+  subject_ID = c("HV1" = "#d3d0e1", "HV2" = "#9992ba","HV3" = "#cee0e3","HV4" = "#8db8bf", "HV6" = "#d9d9d9", "HV7" = "#a6a6a6", "HV8" = "#cae7d9", "HV9" = "#84c7a5", "HV21" = "#faebf2", "HV22" = "#e49abf", "HV23" = "#f0e7c2", "HV24" = "#dbc670",  "HV25" = "#e0d4d1", "HV29" = "#b89b94"),
+  species = c("S. hominis" = "#b1e1ae", "S. capitis" =  "#08a9e5", "S. epidermidis" = "#023880")) 
+
+
+
+
+#https://www.biostars.org/p/285370/
+
+#https://stackoverflow.com/questions/32545256/define-specific-value-colouring-with-pheatmap-in-r
+
+xx <- pheatmap::pheatmap(dfm, scale = "none", legend = F, 
+               annotation_row = ann_row, 
+               border_color = "white",
+               cluster_rows = T,
+               cluster_cols = T,
+               clustering_distance_rows = "euclidean",
+               clustering_distance_cols = "euclidean", 
+               clustering_method = "ward.D2", 
+               annotation_colors = ann_colors,
+               fontsize_row = 3, 
+               fontsize_col = 3,
+               show_colnames = F,
+               show_rownames = T,
+               color = c("gray90", "black"),
+               breaks = c(0, 0.5, 1), 
+               main = '')
+
+save_pheatmap_pdf <- function(x, filename, width=10, height=7.5) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(xx, "SD_genus_pangenome_matrix.pdf")
+```
+
+
+###4 Plot Jaccard distance between isolates
+
+```{r}
+#plot
+library(ape)
+library(vegan)
+
+#jaccard
+jaccard <- vegdist(dfm, method = "jaccard")
+jacc_melt=melt(data.matrix(jaccard))
+jacc_melt=jacc_melt %>% mutate(sim = 1-value)
+jacc_melt <- jacc_melt %>% dplyr::rename(genome1 = Var1)
+jacc_melt <- jacc_melt %>% dplyr::rename(genome2 = Var2)
+
+jacc_acast=acast(jacc_melt,genome1~genome2,value.var = "sim",fill=0,fun.aggregate = mean)
+
+jacc_acastm <- as.matrix(jacc_acast)
+
+col <- (brewer.pal(5, "YlOrRd")) #rev, YlGnBu ,  RdYlBu, PRGn, YlOrRd, "Greys", "Oranges", RdPu
+
+xx <- pheatmap::pheatmap((jacc_acastm), scale = "none", legend = T, 
+         border_color = NA,
+         annotation_row = ann_row,
+         cluster_rows = T,
+         cluster_cols = T,
+         na_col="white",
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean", 
+         clustering_method = "ward.D", 
+         annotation_colors = ann_colors,
+         fontsize_row = 2.5, 
+         fontsize_col = 3.0,
+         color = col,
+         show_colnames = T,
+         show_rownames = T,
+         drop_levels = T,
+         main = '')
+
+save_pheatmap_pdf <- function(x, filename, width=10, height=7.5) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(xx, "SD_genus_pangenome_jaccard.pdf")
+
+```
+
+
