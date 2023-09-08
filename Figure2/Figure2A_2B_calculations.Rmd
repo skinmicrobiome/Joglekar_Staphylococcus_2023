@@ -1,0 +1,213 @@
+---
+title: "Figure 2A: Staphylococcus genus pangenome core gene calculation"
+author: "Payal Joglekar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+Generate files for calculating genes (core + accessory) in all sub-sets of the genus pan-genome (for Figure 2B)
+
+Steps:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+1. Load libraries
+
+```{r cars}
+library(tidyverse)
+library(RColorBrewer)
+library(reshape2)
+library(data.table)
+```
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+
+2. Upload files and tidy them
+
+```{r}
+#pananroo gene_presence_absence
+df <- fread(file.path(path,"genus_gene_presence_absence.csv"), data.table = FALSE) %>% as_tibble()
+
+df1 <- column_to_rownames(df, var = "ID")
+df1 <- df1 %>% select(3:128)
+
+#metadata
+meta <- read.csv(file.path(path,"Figure2_metadata.csv"), header=T)
+ 
+#trim metadata
+meta <- meta %>% dplyr::rename(subject_ID = "subject.number.for.manuscript")
+meta <- meta %>% select(c(isolate, genome_trim, species, subject_ID, site))
+
+#change genome_trim names to isolate names
+df1t <- as.data.frame(t(df1))
+df1t <- rownames_to_column(df1t, var = "genome_trim")
+meta1 <- meta %>% select(isolate, genome_trim)
+df1t1 <- left_join(meta1, df1t, by = 'genome_trim')
+df1t1 <- df1t1 %>% select(!genome_trim)
+df1t1 <- column_to_rownames(df1t1, var = "isolate")
+```
+
+3.1 Genus pan-genome categories (Figure 2A)
+```{r}
+#create a new column with # of genomes carrying a gene
+df2 <- as.data.frame(t(df1t1)) #transpose
+df2 <- df2 %>% mutate(sum = rowSums(df2)) #this gives number of genomes, temporary column
+df2$sum <- as.numeric(df2$sum)
+
+#total genes
+nrow(df2)
+#core
+c <- nrow(df2 %>% filter(sum >= 126))
+#soft-core
+sc <- nrow(df2 %>% filter(sum >= 120 & sum < 126))
+#shell
+s <- nrow(df2 %>% filter(sum >= 19 & sum < 120))
+#cloud
+r <- nrow(df2 %>% filter(sum < 19))
+
+c(c, sc, s, r)
+```
+
+3.2 Subset df onto each species (for Figure 2B)
+```{r}
+#all
+dfall <- df2 
+dfall <- dfall %>% filter(sum > 0)
+dfall <- rownames_to_column(dfall, var = "gene")
+
+#capitis
+metac <- meta %>% filter(species == "S. capitis")
+dfc <- df2 %>% select(metac$isolate)
+dfc <- dfc %>% mutate(sum = rowSums(dfc)) 
+dfc <- dfc %>% filter(sum > 0)
+dfc <- rownames_to_column(dfc, var = "gene")
+
+#epidermidis
+metae <- meta %>% filter(species == "S. epidermidis")
+dfe <- df2 %>% select(metae$isolate)
+dfe <- dfe %>% mutate(sum = rowSums(dfe)) 
+dfe <- dfe %>% filter(sum > 0)
+dfe <- rownames_to_column(dfe, var = "gene")
+
+#hominis
+metah <- meta %>% filter(species == "S. hominis")
+dfh <- df2 %>% select(metah$isolate)
+dfh <- dfh %>% mutate(sum = rowSums(dfh)) 
+dfh <- dfh %>% filter(sum > 0)
+dfh <- rownames_to_column(dfh, var = "gene")
+```
+
+3.3 Genes restricted to 2 species (core + accessory) (for Figure 2B)
+```{r}
+#cap+epi all
+ce_all <- inner_join(dfc, dfe, by = 'gene') 
+ce_all1 <- anti_join(ce_all, dfh, by = 'gene')
+ce_all_df <-df %>% filter(ID %in% ce_all1$gene) 
+write_csv(ce_all_df, "genus_pangenome_scap_sepi_all.csv")
+
+#cap+epi core (species-restricted-core)
+ce_core <- ce_all1 %>% filter(sum.x >= 21 & sum.y >= 47)
+ce_core_df <- df %>% filter(ID %in% ce_core$gene) 
+
+##############################
+#cap+hom all
+ch_all <- inner_join(dfc, dfh, by = 'gene') 
+ch_all1 <- anti_join(ch_all, dfe, by = 'gene')
+ch_all_df <-df %>% filter(ID %in% ch_all1$gene)
+write_csv(ch_all_df, "genus_pangenome_scap_shom_all.csv")
+
+#cap+hom core (species-restricted-core)
+ch_core <- ch_all1 %>% filter(sum.x >= 21 & sum.y >= 53)
+ch_core_df <- df %>% filter(ID %in% ch_core$gene) 
+
+##############################
+#epi+hom all
+eh_all <- inner_join(dfe, dfh, by = 'gene') 
+eh_all1 <- anti_join(eh_all, dfc, by = 'gene')
+eh_all_df <-df %>% filter(ID %in% eh_all1$gene)
+write_csv(eh_all_df, "genus_pangenome_sepi_shom_all.csv")
+
+#epi+hom core (species-restricted-core)
+eh_core <- eh_all1 %>% filter(sum.x >= 47 & sum.y >= 53)
+eh_core_df <- df %>% filter(ID %in% eh_core$gene) 
+```
+
+
+3.4 Genes restricted to 1 species (core + accessory) (for Figure 2B)
+```{r}
+#cap
+cap_all <- anti_join(dfc, dfe, by = 'gene')
+cap_all1 <- anti_join(cap_all, dfh, by = 'gene')
+cap_all_df <-df %>% filter(ID %in% cap_all1$gene)
+write_csv(cap_all_df, "genus_pangenome_scap_all.csv")
+
+#core (species-restricted-core)
+cap_core <- cap_all1 %>% filter(sum >= 21)
+cap_core_df <- df %>% filter(ID %in% cap_core$gene) 
+
+##############################
+#epi
+epi_all <- anti_join(dfe, dfc, by = 'gene')
+epi_all1 <- anti_join(epi_all, dfh, by = 'gene')
+epi_all_df <-df %>% filter(ID %in% epi_all1$gene)
+write_csv(epi_all_df, "genus_pangenome_sepi_all.csv")
+
+#core (species-restricted-core)
+epi_core <- epi_all1 %>% filter(sum >= 47)
+epi_core_df <- df %>% filter(ID %in% epi_core$gene) 
+
+##############################
+#hom
+hom_all <- anti_join(dfh, dfc, by = 'gene')
+hom_all1 <- anti_join(hom_all, dfe, by = 'gene')
+hom_all_df <-df %>% filter(ID %in% hom_all1$gene)
+write_csv(hom_all_df, "genus_pangenome_shom_all.csv")
+
+#core (species-restricted-core)
+hom_core <- hom_all1 %>% filter(sum >= 53)
+hom_core_df <- df %>% filter(ID %in% hom_core$gene)
+##############################
+```
+
+3.5 Genes in 3 species (core plus accessory) (for Figure 2B)
+```{r}
+#core to all three species (genus-core)
+staph_all_core <- dfall %>% filter(sum >= 120)
+staph_all_core_df <- df %>% filter(ID %in% staph_all_core$gene) 
+write_csv(staph_all_core_df, "genus_pangenome_staph_genus_core.csv")
+
+
+#genus_shell
+staph_all_shell <- dfall %>% filter(sum >= 19 & sum < 120)
+staph_all_shell_df <- df %>% filter(ID %in% staph_all_shell$gene) 
+write_csv(staph_all_shell_df, "genus_pangenome_staph_genus_shell.csv")
+
+#genus-cloud
+staph_all_cloud <- dfall %>% filter(sum < 19)
+staph_all_cloud_df <- df %>% filter(ID %in% staph_all_cloud$gene) 
+write_csv(staph_all_cloud_df, "genus_pangenome_staph_genus_cloud.csv")
+
+#accessory to all three species
+non_all_core_list <- as.vector(c(ce_all1$gene, ch_all1$gene, eh_all1$gene, cap_all1$gene, epi_all1$gene, hom_all1$gene, staph_all_core$gene))
+staph_all_accessory <- dfall %>% filter(!gene %in% non_all_core_list)
+staph_all_accessory_df <- df %>% filter(ID %in% staph_all_accessory$gene)
+write_csv(staph_all_accessory_df, "genus_pangenome_staph_genus_accessory.csv")
+
+#all accessory genes (except 1660 core)
+staph_non_core <- dfall %>% filter(!gene %in% staph_all_core$gene) 
+staph_non_core_df <- df %>% filter(ID %in% staph_non_core$gene) 
+write_csv(staph_non_core_df, "genus_pangenome_staph_all_non_core.csv")
+
+
+#genes common to all irrespective of core or accessory
+non_all_list <- as.vector(c(ce_all1$gene, ch_all1$gene, eh_all1$gene, cap_all1$gene, epi_all1$gene, hom_all1$gene))
+staph_all <- dfall %>% filter(!gene %in% non_all_list)
+staph_all_df <- df %>% filter(ID %in% staph_all$gene)
+write_csv(staph_all_df, "genus_pangenome_staph_common_to_all_three.csv")
+
+```
