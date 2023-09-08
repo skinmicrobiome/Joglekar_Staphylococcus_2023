@@ -95,7 +95,7 @@ psRA <- transform_sample_counts(ps_staph, function(x) x/sum(x))
 psAST <- transform_sample_counts(psRA, function(x) {asin(sqrt(x))})
 
 #Set up an otu tables with arcsine transformations
-otus.AST = data.frame(otu_table(psAST))
+m = data.frame(otu_table(psAST))
 
 #plot arcsine tranform
 AST= meanSdPlot(as.matrix(m), rank=FALSE) 
@@ -105,8 +105,6 @@ AST= meanSdPlot(as.matrix(m), rank=FALSE)
 
 #### 3. PCoA: bray-curtis
 ```{r}
-
-m <- data.frame((otu_table(psAST)))
 
 d.all <- vegdist(m, method='bray', binary=F) #Bray-Curtis 
 
