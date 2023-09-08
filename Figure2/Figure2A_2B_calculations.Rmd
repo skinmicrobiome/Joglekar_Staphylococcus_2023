@@ -37,7 +37,7 @@ df1 <- column_to_rownames(df, var = "ID")
 df1 <- df1 %>% select(3:128)
 
 #metadata
-meta <- read.csv(file.path(path,"Figure2_metadata.csv"), header=T)
+meta <- read.csv(file.path(path,"metadata.csv"), header=T)
  
 #trim metadata
 meta <- meta %>% dplyr::rename(subject_ID = "subject.number.for.manuscript")
