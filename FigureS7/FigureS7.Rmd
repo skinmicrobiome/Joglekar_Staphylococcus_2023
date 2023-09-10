@@ -1,0 +1,233 @@
+---
+title: "Figure S7: KEGG module completeness"
+author: "Payal Joglekar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+1.1 Load libraries
+```{r}
+# load libraries
+rm(list=ls())
+library(reshape2)
+library(tidyverse)
+library(ggplot2)
+library(RColorBrewer)
+library(viridis)
+library(data.table)
+library(ggpubr)
+library(ggpattern)
+library(readxl)
+library(pheatmap)
+```
+
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+
+2.1 Upload files and tidy them
+```{r}
+#load a combined file containing KEGG pathway annotations for genes from all genomes
+KEGG <- read.delim(file.path(path,"all_staph_genomes_kegg.tsv"), sep="\t",stringsAsFactors=FALSE,header=FALSE)
+
+#format file
+KEGG$V7=gsub(".summary.kegg_pathways.tsv","",KEGG$V7)
+KEGG <- KEGG %>% select(V7, everything())
+colnames(KEGG)=c("run_accession","module_accession","completeness","pathway_name","pathway_class","matching_ko","missing_ko")
+KEGG=KEGG[!(KEGG$module_accession=="module_accession"),]
+KEGG$completeness=as.numeric(as.vector(KEGG$completeness))
+KEGG$pathway_class=gsub("Pathway modules;","",KEGG$pathway_class)
+#KEGG$pathway_class=gsub(";.*","",KEGG$pathway_class)
+KEGG_dict=as.data.frame(unique(KEGG[,c("pathway_name","pathway_class")]))
+KEGG_dict$pathway_class2=paste0("KEGG",rownames(KEGG_dict),paste="") #simplify names of pathways
+KEGG1=merge(KEGG,KEGG_dict,by="pathway_name")
+
+
+
+#load metadata
+meta <- read.csv(file.path(path,"metadata.csv"), header=T)
+
+#format meta
+meta$genome <- gsub(".fasta","",meta$genome)
+meta <- dplyr::rename(meta, run_accession = genome)
+meta$run_accession <- gsub("Scap_58D05_CD159_admsf.spades.pilon", "Scap_58D05_admsf.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Sepi_61B02_CD145_abkvk.spades.pilon", "Sepi_61B02_abkvk.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Sepi_63G02_CD188_abkvp.spades.pilon", "Sepi_63G02_abkvp.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("issueT_Sepi_28B01_adqgz.spades.pilon", "iT_Sepi_28B01_adqgz.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("issueT_Shom_28A10_adqgy.spades.pilon", "iT_Shom_28A10_adqgy.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Scap_2C01_adjxa.Nano.pilon", "Scap_2C01_adjxa.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Scap_LM7D7_adjwo.Nano.pilon", "Scap_LM7D7_adjwo.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Scap_DM21G11_adqhb.Nano.pilon", "Scap_DM21G11_adqhb.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Sepi_DM21B07_adqbg.Nano.pilon", "Sepi_DM21B07_adqbg.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Sepi_DM21B07_adqbg.Nano.pilon", "Sepi_DM21B07_adqbg.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Sepi_DM24B03_adqbk.Nano.pilon", "Sepi_DM24B03_adqbk.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Shom_DM18D10_acrlg.PB_DATA", "Shom_DM18D10_acrlg.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Shom_DM21B05_acrlk.PB_DATA", "Shom_DM21B05_acrlk.spades.pilon", meta$run_accession)
+meta$run_accession <- gsub("Shom_DM21D06_acrlw.Nano.pilon", "Shom_DM21D06_acrlw.spades.pilon", meta$run_accession)
+
+
+
+#merge kegg and meta files 
+KEGG_m=merge(KEGG1,meta,by="run_accession")
+
+#subset to pathways that are at least 75% complete in at least one genome
+KEGG_m_max=KEGG_m%>%group_by(pathway_name)%>%dplyr::summarise(max_path=max(completeness))
+KEGG_m_max=KEGG_m_max[which(KEGG_m_max$max_path>=75),]
+
+#subset merged file to retain 75% complete modules
+KEGG_m1=KEGG_m[which(KEGG_m$pathway_name%in%KEGG_m_max$pathway_name),]
+```
+
+
+2.1 Plot as heatmap
+```{r}
+KEGG_m1$completeness <- as.numeric(KEGG_m1$completeness)
+
+#modify completeness values of pathways missed by the kegg script but confirmed to be present using eggnog-mapper
+KEGG_m2 <- KEGG_m1
+KEGG_m2 <- KEGG_m2 %>% select(c(1:7, 10, 13))
+
+#remove Abx resistance modules (this is optional)
+KEGG_m2 <- KEGG_m2 %>% filter(!module_accession %in% c("M00704", "M00714", "M00625", "M00627"))
+
+#remove AMP resistance modules and signature module (optional)
+KEGG_m2 <- KEGG_m2 %>% filter(!module_accession %in% c("M00700", "M00702", "M00725", "M00726", "M00730", "M00616" ))
+
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00004"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00007"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00307"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00416"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00022"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00023"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00432"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00019"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00570"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00017"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00018"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00364"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00009"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00010"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00011"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00530"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00176"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00121"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00725"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00726"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00730"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00026" & KEGG_m2$completeness > 50] <- 100
+
+#specific isolate absence
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00004" & KEGG_m2$isolate == "SHNIH055"] <- 85.71
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00007" & KEGG_m2$isolate == "SHNIH055"] <- 75
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00012" & KEGG_m2$isolate == "SENIH044"] <- 60
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00549" & KEGG_m2$species %in% c("S. capitis", "S. epidermdis")] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00549" & KEGG_m2$isolate == "SHNIH020"] <- 100
+KEGG_m2$completeness[KEGG_m2$module_accession == "M00029" & KEGG_m2$isolate == "SCNIH015"] <- 80
+
+
+#add two new modules that were not detected by HMM
+KEGG_m2 <- remove_rownames(KEGG_m2)
+#M00899
+data_new_2 <- KEGG_m2 %>% filter(module_accession == "M00001")
+data_new_2$module_accession[] <- "M00899"
+data_new_2$completeness[data_new_2$module_accession == "M00899"] <- 100
+data_new_2$pathway_name[data_new_2$module_accession == "M00899"] <- 'Thiamine salvage pathway, HMP/HET => TMP'
+data_new_2$pathway_class.x[data_new_2$module_accession == "M00899"] <- "Metabolism of cofactors and vitamins; Cofactor and vitamin metabolism"
+data_new_2$matching_ko[data_new_2$module_accession == "M00899"] <- 'K00878,K00941,K00788,K14153'
+data_new_2$missing_ko[data_new_2$module_accession == "M00899"] <- ''
+
+#join
+KEGG_m2 <- rbind(KEGG_m2, data_new_2)
+KEGG_m2 <- remove_rownames(KEGG_m2)
+
+
+#M00916
+data_new_3 <- KEGG_m2 %>% filter(module_accession == "M00001")
+data_new_3$module_accession[] <- "M00916"
+data_new_3$completeness[data_new_3$module_accession == "M00916"] <- 100
+data_new_3$pathway_name[data_new_3$module_accession == "M00916"] <- 'Pyridoxal-P biosynthesis'
+data_new_3$pathway_class.x[data_new_3$module_accession == "M00916"] <- "Metabolism of cofactors and vitamins; Cofactor and vitamin metabolism"
+data_new_3$matching_ko[data_new_3$module_accession == "M00916"] <- 'K06215, K08681'
+data_new_3$missing_ko[data_new_3$module_accession == "M00916"] <- ''
+
+#join
+KEGG_m2 <- rbind(KEGG_m2, data_new_3)
+KEGG_m2 <- remove_rownames(KEGG_m2)
+
+#M00086
+data_new_4 <- KEGG_m2 %>% filter(module_accession == "M00001")
+data_new_4$module_accession[] <- "M00086"
+data_new_4$completeness[data_new_4$module_accession == "M00086"] <- 100
+data_new_4$pathway_name[data_new_4$module_accession == "M00086"] <- 'beta-Oxidation, acyl-CoA synthesis'
+data_new_4$pathway_class.x[data_new_4$module_accession == "M00086"] <- "Lipid metabolism; Fatty acid metabolism"
+data_new_4$matching_ko[data_new_4$module_accession == "M00086"] <- 'K01897'
+data_new_4$missing_ko[data_new_4$module_accession == "M00086"] <- ''
+
+#join
+KEGG_m2 <- rbind(KEGG_m2, data_new_4)
+KEGG_m2 <- remove_rownames(KEGG_m2)
+
+total_mat_run=acast(KEGG_m2,run_accession~pathway_name,value.var = "completeness",fill=0,fun.aggregate = mean)
+
+
+mat2 <- KEGG_m2[,c(8,2,3,4)]
+mat2 <- mat2 %>% arrange(factor(module_accession, levels = c("M00001", "M00002", "M00003", "M00005", "M00006", "M00580", "M00004", "M00007", "M00009", "M00010", "M00011", "M00307", "M00008", "M00012", "M00549", "M00632", "M00854", "M00157", "M00149", "M00153", "M00416", "M00579", "M00165", "M00166", "M00167", "M00168", "M00169", "M00172", "M00173", "M00345", "M00530", "M00176", "M00844", "M00028", "M00029", "M00015", "M00022", "M00023", "M00025", "M00432", "M00019", "M00535", "M00570", "M00021", "M00017", "M00035", "M00609", "M00026", "M00045", "M00016", "M00525", "M00526", "M00527", "M00134", "M00018", "M00555", "M00082", "M00083", "M00086", "M00088", "M00089", "M00098", "M00119", "M00120", "M00121", "M00125", "M00126", "M00846", "M00868", "M00140", "M00141", "M00880", "M00127", "M00899", "M00916", "M00116", "M00572", "M00577", "M00123", "M00840", "M00841", "M00048", "M00049", "M00050", "M00051", "M00052", "M00053", "M00095", "M00364", "M00365", "M00849", "M00700", "M00702", "M00725", "M00726", "M00730", "M00704", "M00714", "M00625", "M00627", "M00651", "M00611", "M00612", "M00614", "M00616", "M00618")))
+
+#create matrix for plotting
+mat3 <- as.data.frame(mat2[,c(1,2,4)] %>% 
+  pivot_wider(names_from = pathway_name, values_from = completeness))
+mat3[is.na(mat3)] <- 0
+
+
+# Data frame with column annotations.
+mat_col <- meta %>% select("isolate", "species")
+
+#match isolate order in mat3 and mat_col
+mat3 <- mat3[match(mat_col$isolate, mat3$isolate),]
+rownames(mat3) <- NULL
+
+#change column to rownames
+mat3 <- column_to_rownames(mat3, var = "isolate")
+mat_col <- column_to_rownames(mat_col, var = "isolate")
+
+
+mat_colors <- list(species = c("S. capitis" = "#31afde", "S. epidermidis" = "#1D2951",  "S. hominis" = "#b1e1ae"))
+
+#coul <- (brewer.pal(3, "Set2")) #rev, YlGnBu ,  RdYlBu, PRGn, YlOrRd
+#col <- colorRampPalette(coul)(10)
+#OR
+col = viridis(n = 10, alpha = 1, begin = 0, end = 1, option = "magma")
+
+
+xx <-pheatmap(mat = t(mat3), scale = "none", legend = T, 
+                color = col, #mako, magma, inferno, viridis, cividis
+                show_colnames     = T,
+                show_rownames     = T,
+                border_color = "black",
+                annotation_col = mat_col,
+                annotation_colors = mat_colors,
+                cluster_rows = F,
+                cluster_cols = T,
+                clustering_distance_cols = "euclidean",
+                clustering_method = "ward.D",
+                fontsize_row = 7, 
+                fontsize_col = 3.5,
+                main= "Staph KEGG Heatmap"
+)
+
+save_pheatmap_pdf <- function(x, filename, width=12, height=10) {
+  stopifnot(!missing(x))
+  stopifnot(!missing(filename))
+  pdf(filename, width=width, height=height)
+  grid::grid.newpage()
+  grid::grid.draw(x$gtable)
+  dev.off()
+}
+
+save_pheatmap_pdf(xx, "SD_staphall_kegg75_magma_final.pdf")
+
+```
+
