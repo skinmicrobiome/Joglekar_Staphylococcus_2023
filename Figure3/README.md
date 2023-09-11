@@ -1,4 +1,4 @@
-Files to generate Figure 3A-C:
+Files used in Figure 3A-C:
 
 1. S. capitis: capitis_phylogeny.newick and capitis_pangenome.newick
 
