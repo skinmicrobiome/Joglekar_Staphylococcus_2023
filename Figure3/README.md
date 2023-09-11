@@ -6,6 +6,8 @@ Files used in Figure 3A-C:
 
 3. S. hominis: hominis_phylogeny.newick and hominis_pangenome.newick
 
+4. All genomes tree for rooting: staphall_phylogeny.newick
+
 
 
 R code to generate Figure 3D for S. capitis (as an example).
