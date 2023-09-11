@@ -4,6 +4,7 @@ Integrated genomic and functional analyses of human skin associated Staphylococc
 * phyloseq_object - phyloseq_object used for ASV analysis
 * greedy_cover - script used to select genomes that maximize pangenome coverage
 * RBBH - scripts for clustering species-level pangenomes
+* Figures - Each Figure folder contains the scripts and the associted files for generating the manuscript Figure
 
 # Amplicon data
 Joglekar_amplicon.xlsx describes the amplicon read data:
