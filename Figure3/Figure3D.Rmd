@@ -1,0 +1,162 @@
+---
+title: "Figure 3D: S. capitis pangenome versus phylogenetic distance"
+author: "Payal Joglekar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+###Background: The purpose of this document is analyze the relationship
+between the phylogenetic distance versus pan-genomic distance in a given
+species. <br /> 1. Phylogenetic distance: Core gene alignment from
+panaroo was used to generate amaximum likelihood tree using RAxML-ng
+<br /> 2. Pan-genomic distance: Jaccard or hamming distance between
+isolates using gene_presence_absence_roary.csv output from panaroo
+<br /> <br /> 
+
+###Steps:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+### 1 Load libraries
+
+```{r cars}
+library(tidyverse)
+library(data.table)
+library(reshape2)
+library(ape)
+library(vegan)
+library(ggpubr)
+```
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+###2 Pan-genomic distance<br /> <br /> 
+
+####2.1 Importing gene presenceabsence file
+
+```{r}
+pa <- fread(file.path(path,"Scapitis_gene_presence_absence.Rtab"), data.table = FALSE) %>% as_tibble()
+pa1 <- column_to_rownames(pa, var = "Gene")
+
+#metadata
+meta <- read.csv(file.path(path,"Figure3_metadata.csv"), header=T)
+ 
+#trim metadata
+#meta <- column_to_rownames(meta, var = "genome_trim")
+meta <- meta %>% filter(species == "S. capitis")
+meta <- meta %>% dplyr::rename(subject_ID = subject.number.for.manuscript)
+#meta <- meta %>% select(c(isolate, genome_trim, subject_ID, site))
+
+#change genome_trim names to isolate names
+pa1t <- as.data.frame(t(pa1))
+pa1t <- rownames_to_column(pa1t, var = "genome_trim")
+meta1 <- meta %>% select(isolate, genome_trim)
+pa1t1 <- left_join(meta1, pa1t, by = 'genome_trim')
+pa1t1 <- pa1t1 %>% select(!genome_trim)
+pa1t1 <- column_to_rownames(pa1t1, var = "isolate")
+
+#set as matrix for melting dataframe
+pa1t1m <- as.matrix(pa1t1) 
+```
+
+####2.2 Calculate Jaccard or Hamming distance
+
+```{r}
+#Jaccard
+jaccard <- vegdist(pa1t1m, method = "jaccard")
+jacc_melt=melt(data.matrix(jaccard))
+jacc_melt <- jacc_melt %>% dplyr::rename(genome1 = Var1)
+jacc_melt <- jacc_melt %>% dplyr::rename(genome2 = Var2)
+jacc_melt <- jacc_melt %>% dplyr::rename(pangenome_distance = value)
+
+#Can also use hamming distance
+#Hamming
+hamming <- function(X) {
+  D <- (1 - X) %*% t(X)
+  D + t(D)
+}
+sim=hamming(t(pa1t1))
+sim_melt=melt(data.matrix(sim))
+sim_melt <- sim_melt %>% rename(genome1 = Var1)
+sim_melt <- sim_melt %>% rename(genome2 = Var2)
+sim_melt$genome1 <- as.character(sim_melt$genome1)
+sim_melt$genome2 <- as.character(sim_melt$genome2)
+sim_melt <- sim_melt %>% rename(pangenome_distance = value)
+```
+
+###3 Phylogenetic distance<br /> <br /> ####3.1 Importing core gene
+phylogenetic tree
+
+```{r}
+#use iTOL generated newick tree with final isolate names
+tree=ape::read.tree(file.path(path, "capitis_phylogeny.newick"))
+```
+
+####3.2 Calculate phylogenetic distance
+
+```{r}
+#using vegan
+tree_dist=ape::cophenetic.phylo(tree)
+tree_dist_melt=melt(data.matrix(tree_dist))
+tree_dist_melt <- tree_dist_melt %>% dplyr::rename(phylogenetic_distance = value)
+tree_dist_melt <- tree_dist_melt %>% dplyr::rename(genome1 = Var1)
+tree_dist_melt <- tree_dist_melt %>% dplyr::rename(genome2 = Var2)
+```
+####4 Manipulating meta file
+
+```{r}
+#create duplicates for pair-wise comparision
+meta1 <- meta %>% dplyr::rename(genome1 = isolate)
+meta2 <- meta %>% dplyr::rename(genome2 = isolate)
+```
+
+###5 Combining data<br />
+
+```{r}
+#combine two dataframes
+comb=merge(jacc_melt,tree_dist_melt,by=c("genome1","genome2")) 
+#or
+#comb=merge(sim_melt,tree_dist_melt,by=c("genome1","genome2"))
+
+#combine metadata for pair-wise comparison
+combm <- left_join(comb, meta1, by="genome1")
+combm <- left_join(combm, meta2, by="genome2")
+```
+
+###6 Plot with colors<br />
+
+```{r}
+#define isolate clades for each pair-wise comparison
+combm$clade = paste0(combm$alternate_clade.x,combm$alternate_clade.y)
+unique(combm$clade)
+#combine permutations into one category
+combm$clade <- gsub("BA", "AB", combm$clade)
+unique(combm$clade)
+
+#define colors for clade combinations
+clade_col <- c("AA" = "#984EA3" , "AB" = "#e3be00" , "BB" = "#FF7F00")
+#0044FB
+#plot
+g <- ggplot(combm,aes(x=phylogenetic_distance,y=pangenome_distance)) +
+  geom_smooth(method='lm', formula= y~x, color = "grey") +
+  stat_regline_equation(label.x=0.015, label.y=0.2)+
+  stat_cor(aes(label=..rr.label..), label.x=0.015, label.y=0.19) +
+geom_point(aes(color = clade), 
+           size = 6, stroke = 0.0,
+           shape= 20,
+           alpha = 0.75) +
+  scale_color_manual(values = clade_col) +
+  xlab("Phylogenetic distance")+
+  ylab("Pangenome distance")+
+  theme_classic() 
+
+g + scale_x_continuous(breaks = seq(0, 0.1, by = 0.01)) +
+  scale_y_continuous(breaks = seq(0, 0.2, by = 0.05)) 
+
+ggsave("Scap_panvsphylo_distance.pdf", width = 5, height = 4)
+```
+
