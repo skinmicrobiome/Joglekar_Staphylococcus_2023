@@ -8,10 +8,12 @@ Files used in Figure 3A-C:
 
 
 
-R code to generate Figure 3D for S. capitis (as an example) .
+R code to generate Figure 3D for S. capitis (as an example).
 
 Script uses the following two files:
 
 capitis_phylogeny.newick
+
 Scapitis_gene_presence_absence.Rtab
+
 Figure3_metadata.csv
