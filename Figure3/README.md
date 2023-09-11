@@ -12,8 +12,8 @@ R code to generate Figure 3D for S. capitis (as an example).
 
 Script uses the following two files:
 
-capitis_phylogeny.newick
+1. capitis_phylogeny.newick
 
-Scapitis_gene_presence_absence.Rtab
+2. Scapitis_gene_presence_absence.Rtab
 
-Figure3_metadata.csv
+3. Figure3_metadata.csv
