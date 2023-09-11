@@ -12,7 +12,7 @@ Files used in Figure 3A-C:
 
 R code to generate Figure 3D for S. capitis (as an example).
 
-Script uses the following two files:
+Script uses the following three files:
 
 1. capitis_phylogeny.newick
 
