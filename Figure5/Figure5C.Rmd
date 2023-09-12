@@ -1,0 +1,68 @@
+---
+title: "Figure 5C: Staphylococcus all genes deseq heatmap"
+author: "Payal Joglekar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, results='hide'}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+PART A: Open raw counts and metadata tables and create a DESeq object <br />
+
+#1 Load library and setwd
+
+```{r}
+library(tidyverse)
+library(ComplexHeatmap)
+```
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+1.1 Load files
+```{r}
+#open combined dataframe for DEGs discrete matrix
+dfdeg <- as.data.frame(read.csv("Staph_log2FC_EccvsBHI_DEG_discrete.csv"))
+
+#join with metadata
+gpan <- as.data.frame(read.csv("genus_gene_presence_absence.csv"))
+gpan1 <- gpan %>% select(1,2,136,137,143:145, 149, 150, 156:158, 162,163, 169:171) 
+dfdeg1 <- left_join(dfdeg, gpan1 ,by = "ID")
+
+#prepare for plotting
+dfdeg2 <- dfdeg %>% select(!category)
+dfdeg2 <- column_to_rownames(dfdeg2, var = "ID")
+
+#convert to matrix
+dfdeg2m <- as.matrix(dfdeg2)
+
+```
+
+2 plot
+```{r}
+#define annotations for sidebars
+ann_row <- dfdeg %>% select(ID, category)
+ann_row <- column_to_rownames(ann_row, var = "ID")
+ann_row$category <- factor(ann_row$category, levels = c("genus_core", "species_restricted_core", "accessory"))
+
+ann_colors = c("genus_core" = "#388E3C", "species_restricted_core" = "#8BC34A", "accessory" = "#DCE775")
+
+colors = c("#D1D2D4", "#E7C034", "#B2182B", "#2166AC") #mistyrose #gray50#lightgoldenrod1 "#F7F7F7"
+colors = c("grey40", "#F7F7F7", "#B10026", "#762A83")
+colors = c("#525252", "#F0F0F0", "#B10026", "#762A83") #final
+
+df = data.frame(ann_row$category)
+
+ha = rowAnnotation(df = df, col = list(ann_row.category = ann_colors))
+
+pdf(file="SD_Staph_log2FC_discrete_heatmap_rnaseq_EccvsBhi2.pdf", width=6,height=10)
+
+xx <- Heatmap(dfdeg2m, show_row_names = F, col = colors, cluster_rows = T,
+        column_title = "Differentialy regulated genes", left_annotation = ha, border = FALSE)
+
+draw(xx)
+dev.off()
+```
