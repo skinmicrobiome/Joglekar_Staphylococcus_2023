@@ -1,0 +1,28 @@
+sample name,sample ID,strain,isolate,species,medium
+Sepi_PJ_001,LM087_in BHI + 0.5% Yeast Extract_4hr ,9d05,NIHLM087,S. epidermidis,bhi
+Sepi_PJ_002,LM087_in BHI + 0.5% Yeast Extract_4hr ,9d05,NIHLM087,S. epidermidis,bhi
+Sepi_PJ_003,LM087_in BHI + 0.5% Yeast Extract_4hr ,9d05,NIHLM087,S. epidermidis,bhi
+Sepi_PJ_004,LM087_in Sweat_4.5hr,9d05,NIHLM087,S. epidermidis,eccrine
+Sepi_PJ_005,LM087_in Sweat_4.5hr,9d05,NIHLM087,S. epidermidis,eccrine
+Sepi_PJ_006,LM087_in Sweat_4.5hr,9d05,NIHLM087,S. epidermidis,eccrine
+Sepi_PJ_007,LM087_Sweat + 1% Apocrine_4.5hr,9d05,NIHLM087,S. epidermidis,eccrine_apocrine
+Sepi_PJ_008,LM087_Sweat + 1% Apocrine_4.5hr,9d05,NIHLM087,S. epidermidis,eccrine_apocrine
+Sepi_PJ_009,LM087_Sweat + 1% Apocrine_4.5hr,9d05,NIHLM087,S. epidermidis,eccrine_apocrine
+Sepi_PJ_010,DM24B03_in BHI + 0.5% Yeast Extract_4hr ,DM24B03,SENIH047,S. epidermidis,bhi
+Sepi_PJ_011,DM24B03_in BHI + 0.5% Yeast Extract_4hr ,DM24B03,SENIH047,S. epidermidis,bhi
+Sepi_PJ_012,DM24B03_in BHI + 0.5% Yeast Extract_4hr ,DM24B03,SENIH047,S. epidermidis,bhi
+Sepi_PJ_013,DM24B03_in Sweat_4.5hr,DM24B03,SENIH047,S. epidermidis,eccrine
+Sepi_PJ_014,DM24B03_in Sweat_4.5hr,DM24B03,SENIH047,S. epidermidis,eccrine
+Sepi_PJ_015,DM24B03_in Sweat_4.5hr,DM24B03,SENIH047,S. epidermidis,eccrine
+Sepi_PJ_016,DM24B03_Sweat + 1% Apocrine_4.5hr,DM24B03,SENIH047,S. epidermidis,eccrine_apocrine
+Sepi_PJ_017,DM24B03_Sweat + 1% Apocrine_4.5hr,DM24B03,SENIH047,S. epidermidis,eccrine_apocrine
+Sepi_PJ_018,DM24B03_Sweat + 1% Apocrine_4.5hr,DM24B03,SENIH047,S. epidermidis,eccrine_apocrine
+Sepi_PJ_019,DM21B07_in BHI + 0.5% Yeast Extract_4hr ,DM21B07,SENIH040,S. epidermidis,bhi
+Sepi_PJ_020,DM21B07_in BHI + 0.5% Yeast Extract_4hr ,DM21B07,SENIH040,S. epidermidis,bhi
+Sepi_PJ_021,DM21B07_in BHI + 0.5% Yeast Extract_4hr ,DM21B07,SENIH040,S. epidermidis,bhi
+Sepi_PJ_022,DM21B07_in Sweat_5.5hr,DM21B07,SENIH040,S. epidermidis,eccrine
+Sepi_PJ_023,DM21B07_in Sweat_5.5hr,DM21B07,SENIH040,S. epidermidis,eccrine
+Sepi_PJ_024,DM21B07_in Sweat_5.5hr,DM21B07,SENIH040,S. epidermidis,eccrine
+Sepi_PJ_025,DM21B07_Sweat + 1% Apocrine_5.5hr,DM21B07,SENIH040,S. epidermidis,eccrine_apocrine
+Sepi_PJ_026,DM21B07_Sweat + 1% Apocrine_5.5hr,DM21B07,SENIH040,S. epidermidis,eccrine_apocrine
+Sepi_PJ_027,DM21B07_Sweat + 1% Apocrine_5.5hr,DM21B07,SENIH040,S. epidermidis,eccrine_apocrine

@@ -1,0 +1,28 @@
+sample name,sample ID,strain,isolate,species,medium
+Scap_PJ_001,DM21G11-2 in BHI + 0.5% Yeast Extract_4.5hr ,DM21G11,SCNIH016,S. capitis,bhi
+Scap_PJ_002,DM21G11-2 in BHI + 0.5% Yeast Extract_4.5hr ,DM21G11,SCNIH016,S. capitis,bhi
+Scap_PJ_003,DM21G11-2 in BHI + 0.5% Yeast Extract_4.5hr ,DM21G11,SCNIH016,S. capitis,bhi
+Scap_PJ_004,DM21G11-2 in Sweat_6.5hr,DM21G11,SCNIH016,S. capitis,eccrine
+Scap_PJ_005,DM21G11-2 in Sweat_6.5hr,DM21G11,SCNIH016,S. capitis,eccrine
+Scap_PJ_006,DM21G11-2 in Sweat_6.5hr,DM21G11,SCNIH016,S. capitis,eccrine
+Scap_PJ_007,DM21G11-2 in Sweat + 1% Apocrine_6.5hr,DM21G11,SCNIH016,S. capitis,eccrine_apocrine
+Scap_PJ_008,DM21G11-2 in Sweat + 1% Apocrine_6.5hr,DM21G11,SCNIH016,S. capitis,eccrine_apocrine
+Scap_PJ_009,DM21G11-2 in Sweat + 1% Apocrine_6.5hr,DM21G11,SCNIH016,S. capitis,eccrine_apocrine
+Scap_PJ_010,LM7D7 in BHI + 0.5% Yeast Extract_4.5hr ,LM7D7,SCNIH009,S. capitis,bhi
+Scap_PJ_011,LM7D7 in BHI + 0.5% Yeast Extract_4.5hr ,LM7D7,SCNIH009,S. capitis,bhi
+Scap_PJ_012,LM7D7 in BHI + 0.5% Yeast Extract_4.5hr ,LM7D7,SCNIH009,S. capitis,bhi
+Scap_PJ_013,LM7D7 in Sweat_6.5hr,LM7D7,SCNIH009,S. capitis,eccrine
+Scap_PJ_014,LM7D7 in Sweat_6.5hr,LM7D7,SCNIH009,S. capitis,eccrine
+Scap_PJ_015,LM7D7 in Sweat_6.5hr,LM7D7,SCNIH009,S. capitis,eccrine
+Scap_PJ_016,LM7D7 in Sweat + 1% Apocrine_6.5hr,LM7D7,SCNIH009,S. capitis,eccrine_apocrine
+Scap_PJ_017,LM7D7 in Sweat + 1% Apocrine_6.5hr,LM7D7,SCNIH009,S. capitis,eccrine_apocrine
+Scap_PJ_018,LM7D7 in Sweat + 1% Apocrine_6.5hr,LM7D7,SCNIH009,S. capitis,eccrine_apocrine
+Scap_PJ_019,2C01 in BHI + 0.5% Yeast Extract_4.5hr ,2C01,SCNIH004,S. capitis,bhi
+Scap_PJ_020,2C01 in BHI + 0.5% Yeast Extract_4.5hr ,2C01,SCNIH004,S. capitis,bhi
+Scap_PJ_021,2C01 in BHI + 0.5% Yeast Extract_4.5hr ,2C01,SCNIH004,S. capitis,bhi
+Scap_PJ_022,2C01 in Sweat_6.5hr,2C01,SCNIH004,S. capitis,eccrine
+Scap_PJ_023,2C01 in Sweat_6.5hr,2C01,SCNIH004,S. capitis,eccrine
+Scap_PJ_024,2C01 in Sweat_6.5hr,2C01,SCNIH004,S. capitis,eccrine
+Scap_PJ_025,2C01 in Sweat + 1% Apocrine_6.5hr,2C01,SCNIH004,S. capitis,eccrine_apocrine
+Scap_PJ_026,2C01 in Sweat + 1% Apocrine_6.5hr,2C01,SCNIH004,S. capitis,eccrine_apocrine
+Scap_PJ_027,2C01 in Sweat + 1% Apocrine_6.5hr,2C01,SCNIH004,S. capitis,eccrine_apocrine

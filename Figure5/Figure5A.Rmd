@@ -1,0 +1,262 @@
+---
+title: "Figure 5A: Staphylococcus genus-core Deseq PCA"
+author: "Payal Joglekar"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, results='hide'}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+PART A: Open raw counts and metadata tables and create a DESeq object <br />
+
+#1 Load library and setwd
+
+```{r}
+library(DESeq2)
+library(tidyverse)
+```
+
+```{r, include=FALSE}
+path <- getwd()
+```
+
+#1.1 Load raw counts file from rockhopper for all isolates
+```{r}
+#open raw count table
+#capitis
+Scap_c01 <- as.data.frame(read.csv("2c01_prokka_raw_combined_for_deseq2.csv"))
+Scap_c01 <- Scap_c01 %>% rename(Gene = X)
+
+Scap_lm7d7 <- as.data.frame(read.csv("lm7d7_prokka_raw_combined_for_deseq2.csv"))
+Scap_lm7d7 <- Scap_lm7d7 %>% rename(Gene = X)
+
+Scap_dm21g11 <- as.data.frame(read.csv("dm21g11_prokka_raw_combined_for_deseq2.csv"))
+Scap_dm21g11 <- Scap_dm21g11 %>% rename(Gene = X)
+
+#epidermidis
+Sepi_9d05 <- as.data.frame(read.csv("9d05_prokka_raw_combined_for_deseq2.csv"))
+Sepi_9d05 <- Sepi_9d05 %>% rename(Gene = X)
+
+Sepi_dm21b07 <- as.data.frame(read.csv("dm21b07_prokka_raw_combined_for_deseq2.csv"))
+Sepi_dm21b07 <- Sepi_dm21b07 %>% rename(Gene = X)
+
+Sepi_dm24b03 <- as.data.frame(read.csv("dm24b03_prokka_raw_combined_for_deseq2.csv"))
+Sepi_dm24b03 <- Sepi_dm24b03 %>% rename(Gene = X)
+
+#hominis
+Shom_dm18d10 <- as.data.frame(read.csv("dm18d10_prokka_raw_combined_for_deseq2.csv"))
+Shom_dm18d10 <- Shom_dm18d10 %>% rename(Gene = X)
+
+Shom_dm21b05 <- as.data.frame(read.csv("dm21b05_prokka_raw_combined_for_deseq2.csv"))
+Shom_dm21b05 <- Shom_dm21b05 %>% rename(Gene = X)
+
+Shom_dm21d06 <- as.data.frame(read.csv("dm21d06_prokka_raw_combined_for_deseq2.csv"))
+Shom_dm21d06 <- Shom_dm21d06 %>% rename(Gene = X)
+```
+
+#1.2 Use pangenome files to select core-genus genes
+```{r}
+library(data.table)
+library(stringr)
+
+#open genus pangenome
+gpan <- as.data.frame(read.csv("genus_gene_presence_absence.csv"))
+gpan1 <- gpan %>% select(1:3, 130:132,145, 158)
+gpan2 <- gpan1
+
+#change soft-core to core
+gpan2[gpan2=="soft-core"] <- "core"
+
+#select core genes
+gpan2  <- gpan2 %>%  filter(sub.group == "core")
+
+#open species pangenome files
+panc <- as.data.frame(read.csv("Scap_pangenome_merge_emapper.csv"))
+
+pane <- as.data.frame(read.csv("Sepi_pangenome_merge_emapper.csv"))
+
+panh <- as.data.frame(read.csv("Shom_pangenome_merge_emapper.csv"))
+
+#filter non-core genes in each pangenome
+panc1 <- left_join(gpan2, panc, by = c("Scap_clust" = "Gene"))
+pane1 <- left_join(gpan2, pane, by = c("Sepi_clust" = "Gene"))
+panh1 <- left_join(gpan2, panh, by = c("Shom_clust" = "Gene"))
+
+#combine all panfiles into one
+panall <- left_join(panc1, pane1, by = "ID")
+panall <- left_join(panall, panh1, by = "ID")
+
+panall <- panall %>% select(ID, Scap_2C01_ad, Scap_LM7D7_a, Scap_DM21G11, Sepi_9d05_aa, Sepi_DM21B07, Sepi_DM24B03, Shom_DM18D10, Shom_DM21B05, Shom_DM21D06)
+
+#select genome column to be separated
+# expand reference to separate cells with multiple ids
+panall1  <- data.table(panall)
+panall1  <- separate_rows(panall1, c(Scap_2C01_ad), sep = ";")
+panall1  <- separate_rows(panall1, c(Scap_LM7D7_a), sep = ";")
+panall1  <- separate_rows(panall1, c(Scap_DM21G11), sep = ";")
+panall1  <- separate_rows(panall1, c(Sepi_9d05_aa), sep = ";")
+panall1  <- separate_rows(panall1, c(Sepi_DM21B07), sep = ";")
+panall1  <- separate_rows(panall1, c(Sepi_DM24B03), sep = ";")
+panall1  <- separate_rows(panall1, c(Shom_DM18D10), sep = ";")
+panall1  <- separate_rows(panall1, c(Shom_DM21B05), sep = ";")
+panall1  <- separate_rows(panall1, c(Shom_DM21D06), sep = ";")
+
+#panall1 <- panall1[, list(Scap_2C01_ad = unlist(strsplit(Scap_2C01_ad , ";"))), by = ID]
+```
+
+#1.3 Join pan-genome and rawdata files
+```{r}
+
+#join by genome locus tag
+panall2 <- left_join(panall1, Scap_dm21g11, by = c("Scap_DM21G11" = "Gene"))
+panall2 <- left_join(panall2, Scap_lm7d7, by = c("Scap_LM7D7_a" = "Gene"))
+panall2 <- left_join(panall2, Scap_c01, by = c("Scap_2C01_ad" = "Gene"))
+panall2 <- left_join(panall2, Sepi_9d05, by = c("Sepi_9d05_aa" = "Gene"))
+panall2 <- left_join(panall2, Sepi_dm24b03, by = c("Sepi_DM24B03" = "Gene"))
+panall2 <- left_join(panall2, Sepi_dm21b07, by = c("Sepi_DM21B07" = "Gene"))
+panall2 <- left_join(panall2, Shom_dm18d10, by = c("Shom_DM18D10" = "Gene"))
+panall2 <- left_join(panall2, Shom_dm21b05, by = c("Shom_DM21B05" = "Gene"))
+panall2 <- left_join(panall2, Shom_dm21d06, by = c("Shom_DM21D06" = "Gene"))
+
+#remove locus tags
+panall2 <- panall2 %>% select(!c(Scap_DM21G11, Scap_LM7D7_a, Scap_2C01_ad, Sepi_9d05_aa, Sepi_DM24B03, Sepi_DM21B07, Shom_DM18D10, Shom_DM21B05, Shom_DM21D06))
+
+#use ID as rownames
+#assign uniue values to duplicated ID
+#panall3 <- panall2 %>% mutate(ID1 = #make.unique(as.character(panall2$ID), sep = "_"))
+
+#ID to rowname
+#panall3 <- panall3 %>% select(!ID)
+#panall3 <- column_to_rownames(panall3, "ID1")
+
+#or 
+#remove duplicates
+panall3 <- panall2 %>% distinct(ID, .keep_all = TRUE)
+panall3 <- column_to_rownames(panall3, "ID")
+#remove rows with NA
+panall4 <- na.omit(panall3)
+
+#or convert NA to 0
+#panall3[is.na(panall3)] <- 0
+
+```
+
+
+#1.2 Load metadata table
+```{r}
+#open metadata
+metac <- read.csv("meta_cap.csv")
+metae <- read.csv("meta_epi.csv")
+metah <- read.csv("meta_hom.csv")
+
+meta <- rbind(metac, metae, metah)
+
+meta$sample.ID <- as.character(meta$sample.ID)
+meta$isolate <- as.character(meta$isolate)
+meta$species <- as.character(meta$species)
+meta$medium <- as.character(meta$medium)
+meta <- meta %>% column_to_rownames(var = "sample.name")
+
+#change medium name to matc growth curves
+meta_grpchg <- meta
+meta_grpchg$medium[meta_grpchg$medium == 'bhi'] <- 'BHI-YE'
+meta_grpchg$medium[meta_grpchg$medium == 'eccrine'] <- 'ES'
+meta_grpchg$medium[meta_grpchg$medium == 'eccrine_apocrine'] <- 'ESL'
+
+#generate a unique group for each isolate-medium pair for deseq2
+meta1 <- meta_grpchg %>% mutate(group = (paste0(meta_grpchg$isolate,"_",meta_grpchg$medium)))
+```
+
+
+#1.3 Create a DESeq2Dataset object
+\
+\
+#requirements: count matrix, metadata and a design formula to run the analysis. The design formula specifies the column(s) in the metadata table and how they should be used in the analysis. For our dataset we only have one column we are interested in, that is ~medium. This column has three factor levels, which tells DESeq2 that for each gene we want to evaluate gene expression change with respect to these different levels.
+
+```{r}
+
+raw_counts <- panall4
+
+
+# one way
+dds <- DESeqDataSetFromMatrix(countData = raw_counts,colData = meta1, design = ~ strain + medium)
+#dds$group <- factor(paste0(dds$strain, dds$medium))
+#design(dds) <- ~ group
+
+#dds$medium <- relevel(dds$medium, ref = "BHI.YE")
+
+# preferred way
+dds <- DESeqDataSetFromMatrix(countData = raw_counts, 
+                              colData = meta1, 
+                              design = ~ group)
+
+
+#confirm raw counts are stored in our DESeq2 object
+View(counts(dds))
+```
+
+
+#Load additional libraries
+```{r}
+library(vsn)
+library(gridExtra)
+library(RColorBrewer)
+library(genefilter)
+```
+
+Variance stabilizing transformation and PCA plot (Figure 5A)
+```{r}
+#vst transformation (recommended for n > 30)
+vsdata <- vst(dds, blind=TRUE)
+
+#The assay function is used to extract the matrix of normalized values
+dist <- assay(vsdata)
+
+################################################################################
+#plot varaincs vs mean
+meanSdPlot(as.matrix(raw_counts), ranks = FALSE)
+meanSdPlot(dist, ranks = FALSE)
+
+#create a PCA plot (identify the sources of variation for both PC1 and PC2 based on metadata)
+library(ggfortify)
+
+#perform PCA analysis
+pca <- prcomp(t(dist), scale = F)
+
+#calculate total variance explained by each principal component
+var_explained = pca$sdev^2 / sum(pca$sdev^2)
+
+print(var_explained)
+
+v <- as.data.frame(var_explained)
+
+#extract pca matrix
+pca2 <- as.data.frame(pca$x[,1:5])
+pca2 <- rownames_to_column(pca2, var = "sample.name")
+meta2 <- rownames_to_column(meta1, var = "sample.name")
+pca2 <- full_join(pca2, meta2, by = "sample.name")
+pca2 <- column_to_rownames(pca2, var = "sample.name")
+pca2$PC1 <- as.numeric(pca2$PC1)
+pca2$PC2 <- as.numeric(pca2$PC2)
+pca2$species <- as.character(pca2$species)
+
+#define medium colors
+med_col <- c("BHI-YE" = "#377EB8", "ESL" = "#4DAF4A", "ES" = "#E41A1C")
+
+#ggplot
+g <- ggplot(pca2, aes(x = PC1, y = PC2, label = isolate)) +
+  geom_point(aes(color = medium, shape = species), size = 4, alpha = 1) +
+  scale_color_manual(values = med_col) +
+  xlab(paste0("PC1: 27% variance")) +
+  ylab(paste0("PC2: 20% variance")) +
+  geom_text(aes(color = medium), hjust = 0.5, nudge_x = -3, nudge_y = -2, size=1) +
+  stat_ellipse(aes(x = PC1, y = PC2, color = medium )) +
+  theme(legend.position = "right") +
+  theme_bw()
+g
+
+ggsave(g, file="SD_Staph_genuscore_deseq_counts_PCA.pdf", height = 4, width = 6, dpi = 600)
+```
+

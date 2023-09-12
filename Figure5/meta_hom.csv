@@ -1,0 +1,28 @@
+sample name,sample ID,strain,isolate,species,medium
+Shom_PJ_011,DM18D10 in BHI + 0.5% Yeast Extract_4hr ,dm18d10,SHNIH025,S. hominis,bhi
+Shom_PJ_012,DM18D10 in BHI + 0.5% Yeast Extract_4hr ,dm18d10,SHNIH025,S. hominis,bhi
+Shom_PJ_013,DM18D10 in BHI + 0.5% Yeast Extract_4hr ,dm18d10,SHNIH025,S. hominis,bhi
+Shom_PJ_014,DM18D10 in Sweat_4.5hr,dm18d10,SHNIH025,S. hominis,eccrine
+Shom_PJ_015,DM18D10 in Sweat_4.5hr,dm18d10,SHNIH025,S. hominis,eccrine
+Shom_PJ_016,DM18D10 in Sweat_4.5hr,dm18d10,SHNIH025,S. hominis,eccrine
+Shom_PJ_017,DM18D10_Sweat + 1% Apocrine_4.5hr,dm18d10,SHNIH025,S. hominis,eccrine_apocrine
+Shom_PJ_018,DM18D10_Sweat + 1% Apocrine_4.5hr,dm18d10,SHNIH025,S. hominis,eccrine_apocrine
+Shom_PJ_019,DM18D10_Sweat + 1% Apocrine_4.5hr,dm18d10,SHNIH025,S. hominis,eccrine_apocrine
+Shom_PJ_020,DM21B05 in BHI + 0.5% Yeast Extract_4hr ,dm21b05,SHNIH027,S. hominis,bhi
+Shom_PJ_021,DM21B05 in BHI + 0.5% Yeast Extract_4hr ,dm21b05,SHNIH027,S. hominis,bhi
+Shom_PJ_022,DM21B05 in BHI + 0.5% Yeast Extract_4hr ,dm21b05,SHNIH027,S. hominis,bhi
+Shom_PJ_023,DM21B05 in Sweat_4.5hr,dm21b05,SHNIH027,S. hominis,eccrine
+Shom_PJ_024,DM21B05 in Sweat_4.5hr,dm21b05,SHNIH027,S. hominis,eccrine
+Shom_PJ_025,DM21B05 in Sweat_4.5hr,dm21b05,SHNIH027,S. hominis,eccrine
+Shom_PJ_026,DM21B05_Sweat + 1% Apocrine_4.5hr,dm21b05,SHNIH027,S. hominis,eccrine_apocrine
+Shom_PJ_027,DM21B05_Sweat + 1% Apocrine_4.5hr,dm21b05,SHNIH027,S. hominis,eccrine_apocrine
+Shom_PJ_028,DM21B05_Sweat + 1% Apocrine_4.5hr,dm21b05,SHNIH027,S. hominis,eccrine_apocrine
+Shom_PJ_029,DM21D06 in BHI + 0.5% Yeast Extract_5hr,dm21d06,SHNIH030,S. hominis,bhi
+Shom_PJ_030,DM21D06 in BHI + 0.5% Yeast Extract_5hr,dm21d06,SHNIH030,S. hominis,bhi
+Shom_PJ_031,DM21D06 in BHI + 0.5% Yeast Extract_5hr,dm21d06,SHNIH030,S. hominis,bhi
+Shom_PJ_032,DM21D06 in Sweat_9hr,dm21d06,SHNIH030,S. hominis,eccrine
+Shom_PJ_033,DM21D06 in Sweat_9hr,dm21d06,SHNIH030,S. hominis,eccrine
+Shom_PJ_034,DM21D06 in Sweat_9hr,dm21d06,SHNIH030,S. hominis,eccrine
+Shom_PJ_035,DM21D06_Sweat + 1% Apocrine_9hr,dm21d06,SHNIH030,S. hominis,eccrine_apocrine
+Shom_PJ_036,DM21D06_Sweat + 1% Apocrine_9hr,dm21d06,SHNIH030,S. hominis,eccrine_apocrine
+Shom_PJ_037,DM21D06_Sweat + 1% Apocrine_9hr,dm21d06,SHNIH030,S. hominis,eccrine_apocrine
