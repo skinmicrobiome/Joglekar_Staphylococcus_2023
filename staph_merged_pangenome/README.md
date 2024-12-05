@@ -22,5 +22,5 @@ Files:
 * sepi.fa - sepi pangenome, 4640 genes
 * shom.fa - shom pangenome, 4849 genes
 * solved.txt - 3-way complete graphs of species-level cluster representative (used to join species pangenomes). See RBBH code
-* staph_merged_pangenome_v2_2023Feb07.tsv - output table
+* staph_merged_pangenome_v2_2023Feb07.tsv - output table from merge_pangenomes.pl
 * staph_merged_pangenome_v2_2023Feb07.xlsx - formatted with a key
