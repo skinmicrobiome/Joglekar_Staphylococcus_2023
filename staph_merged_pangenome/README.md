@@ -12,7 +12,7 @@ Files:
 
 * Scap_pan_genome.emapper.annotations.tsv - eggnog annotation of scap.fa
 * Sepi_pan_genome.emapper.annotations.tsv - eggnog annotation of sepi.fa
-* Shom_pan_genome.emapper.annotations.tsv - eggnog annotation of home.fa
+* Shom_pan_genome.emapper.annotations.tsv - eggnog annotation of shom.fa
 * capitis_core_results - contains scap pangenome presence/absence file from panaroo
 * epidermidis_core_results - contains sepi pangenome presence/absence file from panaroo
 * hominis_core_results - contains shom pangenome presence/absence file from panaroo
